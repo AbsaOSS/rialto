@@ -7,7 +7,7 @@ Rialto is a framework for building and deploying machine learning features in a 
 The name Rialto is a reference to the Rialto Bridge in Venice, Italy. The Rialto Bridge was a major marketplace for goods and ideas the Middle Ages.
 Rialto is intended to be a foundation of a similar marketplace for machine learning features, where users and find and share reusable features.
 
-Sphinx-Generated autodocs pages available **[here](https://legendary-winner-93rlnzn.pages.github.io/)**.
+Sphinx-Generated autodocs pages available **[here]()**.
 
 # Contents
 1. [Instalatlion](#install)
