@@ -1,0 +1,45 @@
+#  Copyright 2022 ABSA Group Limited
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
+general:
+  target_schema: catalog.schema
+  target_partition_column: "INFORMATION_DATE"
+  watched_period_units: "weeks"
+  watched_period_value: 5
+  job: "run" # run/check
+  mail:
+    sender: test@testing.org
+    smtp: server.test
+    to:
+      - developer@testing.org
+    subject: test report
+pipelines:
+- name: SimpleGroup
+  module:
+    python_module: transformations
+    python_class: SimpleGroup
+  schedule:
+    frequency: weekly
+    day: 7
+  dependencies:
+    - table: source.schema.dep1
+      interval:
+        units: "days"
+        value: 1
+      date_col: "DATE"
+    - table: source.schema.dep2
+      interval:
+        units: "months"
+        value: 1
+      date_col: "DATE"

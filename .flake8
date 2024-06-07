@@ -1,0 +1,16 @@
+[flake8]
+max-line-length = 120
+ban-relative-imports = true
+inline-quotes = double
+max-complexity = 15
+multiline-quotes = double
+per-file-ignores =
+    __init__.py:F401
+    tests/*:D
+extend-ignore =
+    N812,
+    E800,
+    D400,
+    D100,
+    D104,
+    D107,
