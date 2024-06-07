@@ -1,0 +1,35 @@
+minimum_pre_commit_version: 3.4.0
+#files: ^rialto/
+
+repos:
+- hooks:
+    - additional_dependencies:
+        - toml
+      id: isort
+  repo: https://github.com/timothycrosley/isort
+  rev: 5.12.0
+- hooks:
+  - id: black
+    name: Format code (black)
+    language_version: python3.10
+  repo: https://github.com/psf/black
+  rev: 23.7.0
+- hooks:
+  - id: end-of-file-fixer
+  - id: trailing-whitespace
+  - id: check-json
+  - id: check-toml
+  - id: check-yaml
+  - id: check-merge-conflict
+  repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.4.0
+
+- hooks:
+  - id: flake8
+    additional_dependencies:
+      - flake8-docstrings==1.7.0
+      - flake8-broken-line==1.0.0
+      - pep8-naming==0.13.3
+    name: Lint code (flake8)
+  repo: https://github.com/PyCQA/flake8
+  rev: 6.1.0
