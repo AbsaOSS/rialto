@@ -10,7 +10,7 @@ Rialto is intended to be a foundation of a similar marketplace for machine learn
 Sphinx-Generated autodocs pages available **[here](https://absaoss.github.io/rialto/)**.
 
 # Contents
-1. [Instalatlion](#install)
+1. [Installation](#install)
 2. [Library Overview](#overview)
 3. [Contributing](#contributing)
 
