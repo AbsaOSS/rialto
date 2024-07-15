@@ -31,4 +31,4 @@ jobs:
       - name: Build and publish the wheel to jfrog
         run: |
           poetry build
-#          poetry publish
+          twine upload dist/*

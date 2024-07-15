@@ -15,7 +15,6 @@ Sphinx-Generated autodocs pages available **[here](https://absaoss.github.io/ria
 3. [Contributing](#contributing)
 
 # <a id="install"></a> 1. Installation
-The packages is not yet available in public pip
 ```bash
 pip install rialto
 ```
@@ -151,7 +150,12 @@ Sequential feature generation can be simply interpreted as appending a new colum
 from rialto.maker import FeatureMaker
 from my_features import simple_features
 
-features, metadata = FeatureMaker.make(df=input_data, key="KEY", make_date=run_date, features_module=simple_features, keep_preexisting=True)
+features, metadata = FeatureMaker.make(
+    df=input_data,
+    key="KEY",
+    make_date=run_date,
+    features_module=simple_features,
+    keep_preexisting=True)
 ```
 
 #### Aggregated
@@ -161,7 +165,11 @@ In aggregated generation, the source dataframe is grouped by the key or keys and
 from rialto.maker import FeatureMaker
 from my_features import agg_features
 
-features, metadata = FeatureMaker.make_aggregated(df=input_data, key="KEY", make_date=run_date, features_module=agg_features)
+features, metadata = FeatureMaker.make_aggregated(
+    df=input_data,
+    key="KEY",
+    make_date=run_date,
+    features_module=agg_features)
 ```
 
 There are also **make_single_feature** and **make_single_agg_feature** available, intended to be used in tests. (See full documentation)
