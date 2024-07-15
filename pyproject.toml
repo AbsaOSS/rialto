@@ -11,6 +11,8 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
 ]
+description = "Rialto is a framework for building and deploying machine learning features in a scalable and reusable way. It provides a set of tools that make it easy to define and deploy features and models, and it provides a way to orchestrate the execution of these features and models."
+authors = ["Marek Dobransky <marekdobr@gmail.com>", "Vladislav Vancak <vladislav.vancak@gmail.com>"]
 
 [project]
 name = "rialto"
