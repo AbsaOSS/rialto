@@ -10,7 +10,11 @@ env:
 
 jobs:
   publish:
-    environment: pypi
+    environment:
+      name: pypi
+      url: https://pypi.org/p/rialto
+    permissions:
+      id-token: write
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout Rialto
@@ -26,10 +30,10 @@ jobs:
           poetry-version: 1.5.1
 
       - name: Install dependencies
-        run: |
-          poetry install
+        run: poetry install
 
-      - name: Build and publish the wheel to jfrog
-        run: |
-          poetry build
-          twine upload dist/*
+      - name: Build the wheel
+        run: poetry build
+
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
