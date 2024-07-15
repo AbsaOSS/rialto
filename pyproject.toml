@@ -1,15 +1,29 @@
 [tool.poetry]
 name = "rialto"
 
-version = "1.3.0"
+version = "1.3.1"
 
 packages = [
     { include = "rialto" },
 ]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+description = "Rialto is a framework for building and deploying machine learning features in a scalable and reusable way. It provides a set of tools that make it easy to define and deploy features and models, and it provides a way to orchestrate the execution of these features and models."
+authors = ["Marek Dobransky <marekdobr@gmail.com>", "Vladislav Vancak <vladislav.vancak@gmail.com>"]
 
-description = "Rialto"
-authors = ["Marek Dobransky <marek.dobransky@absa.africa>"]
+[project]
+name = "rialto"
+readme = "README.md"
+description = "Rialto is a framework for building and deploying machine learning features in a scalable and reusable way. It provides a set of tools that make it easy to define and deploy features and models, and it provides a way to orchestrate the execution of these features and models."
+authors = ["Marek Dobransky <marekdobr@gmail.com>", "Vladislav Vancak <vladislav.vancak@gmail.com>"]
 keywords = ["feature", "featureslib", "featuremaker", "metadata", "featureloader", "loader"]
+
+[project.urls]
+Documentation = "https://absaoss.github.io/rialto/"
+Repository = "https://github.com/AbsaOSS/rialto"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"

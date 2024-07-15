@@ -10,16 +10,11 @@ env:
 
 jobs:
   publish:
-    environment: jfrog
+    environment: pypi
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout Rialto
         uses: actions/checkout@v3
-
-      - name: Install system dependencies
-        run: |
-          apt-get update
-          apt-get install -y openssl libssl-dev wget
 
       - uses: actions/setup-python@v4
         with:
@@ -37,4 +32,4 @@ jobs:
       - name: Build and publish the wheel to jfrog
         run: |
           poetry build
-#          poetry publish
+          twine upload dist/*
