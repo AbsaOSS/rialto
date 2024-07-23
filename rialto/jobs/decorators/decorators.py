@@ -14,7 +14,7 @@
 
 __all__ = ["datasource", "job"]
 
-import importlib.metadata
+import importlib_metadata
 import inspect
 import typing
 
@@ -46,11 +46,12 @@ def _get_module(stack: typing.List) -> typing.Any:
 
 def _get_version(module: typing.Any) -> str:
     try:
-        parent_name, _, _ = module.__name__.partition(".")
-        return importlib.metadata.version(parent_name)
+        package_name, _, _ = module.__name__.partition(".")
+        dist_name =  importlib_metadata.packages_distributions()[package_name][0]
+        return importlib_metadata.version(dist_name)
 
     except Exception:
-        logger.warning(f"Failed to get library {module.__name__} version!")
+        logger.warning(f"Failed to get version of {module.__name__}! Will use N/A")
         return "N/A"
 
 
