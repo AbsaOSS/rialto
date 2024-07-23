@@ -41,3 +41,8 @@ class CustomJobReturnsDataFrame(CustomJobNoReturnVal):
             return spark.createDataFrame(df)
 
         return f
+
+
+class CustomJobNoVersion(CustomJobNoReturnVal):
+    def get_job_version(self) -> str:
+        return None

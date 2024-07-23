@@ -96,7 +96,11 @@ class JobBase(Transformation):
 
     def _add_job_version(self, df: DataFrame) -> DataFrame:
         version = self.get_job_version()
-        return df.withColumn("VERSION", F.lit(version))
+
+        if version is not None:
+            return df.withColumn("VERSION", F.lit(version))
+
+        return df
 
     def _run_main_callable(self, run_date: datetime.date) -> DataFrame:
         with self._setup_resolver(run_date):

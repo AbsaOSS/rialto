@@ -57,6 +57,17 @@ def test_custom_name_function():
     custom_callable = result_class.get_custom_callable()
     assert custom_callable() == "custom_job_name_return"
 
+    job_name = result_class.get_job_name()
+    assert job_name == "custom_job_name"
+
+
+def test_job_disabling_version():
+    result_class = _rialto_import_stub("tests.jobs.test_job.test_job", "disable_version_job_function")
+    assert issubclass(type(result_class), JobBase)
+
+    job_version = result_class.get_job_version()
+    assert job_version is None
+
 
 def test_job_dependencies_registered(spark):
     ConfigHolder.set_custom_config(value=123)
