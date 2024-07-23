@@ -20,12 +20,11 @@ from contextlib import contextmanager
 from unittest.mock import patch
 
 
-def _passthrough_decorator(x: typing.Callable) -> typing.Callable:
-    if type(x) is str:
+def _passthrough_decorator(*args, **kwargs) -> typing.Callable:
+    if len(args) == 0:
         return _passthrough_decorator
-
     else:
-        return x
+        return args[0]
 
 
 @contextmanager

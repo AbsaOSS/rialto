@@ -91,3 +91,13 @@ def test_return_dataframe_forwarded_with_version(spark):
     assert result.columns == ["FIRST", "SECOND", "VERSION"]
     assert result.first()["VERSION"] == "job_version"
     assert result.count() == 2
+
+
+def test_none_job_version_wont_fill_job_colun(spark):
+    table_reader = MagicMock()
+    date = datetime.date(2023, 1, 1)
+
+    result = resources.CustomJobNoVersion().run(reader=table_reader, run_date=date, spark=spark, metadata_manager=None)
+
+    assert type(result) is pyspark.sql.DataFrame
+    assert "VERSION" not in result.columns

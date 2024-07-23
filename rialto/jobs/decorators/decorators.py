@@ -14,10 +14,10 @@
 
 __all__ = ["datasource", "job"]
 
-import importlib_metadata
 import inspect
 import typing
 
+import importlib_metadata
 from loguru import logger
 
 from rialto.jobs.decorators.job_base import JobBase
@@ -47,7 +47,7 @@ def _get_module(stack: typing.List) -> typing.Any:
 def _get_version(module: typing.Any) -> str:
     try:
         package_name, _, _ = module.__name__.partition(".")
-        dist_name =  importlib_metadata.packages_distributions()[package_name][0]
+        dist_name = importlib_metadata.packages_distributions()[package_name][0]
         return importlib_metadata.version(dist_name)
 
     except Exception:
@@ -73,15 +73,19 @@ def _generate_rialto_job(callable: typing.Callable, module: object, class_name: 
     return generated_class
 
 
-def job(name_or_callable: typing.Union[str, typing.Callable]) -> typing.Union[typing.Callable, typing.Type]:
+def job(*args, custom_name=None, disable_version=False):
     """
     Rialto jobs decorator.
 
     Transforms a python function into a rialto transormation, which can be imported and ran by Rialto Runner.
-    Allows a custom name, via @job("custom_name_here") or can be just used as @job and the function's name is used.
+    Is mainly used as @job and the function's name is used, and the outputs get automatic.
+    To override this behavior, use @job(custom_name=XXX, disable_version=True).
 
-    :param name_or_callable:  str for custom job name. Otherwise, run function.
-    :return: One more job wrapper for run function (if custom name specified).
+
+    :param *args:  list of positional arguments. Empty in case custom_name or disable_version is specified.
+    :param custom_name:  str for custom job name.
+    :param disable_version:  bool for disabling autofilling the VERSION column in the job's outputs.
+    :return: One more job wrapper for run function (if custom name or version override specified).
              Otherwise, generates Rialto Transformation Type and returns it for in-module registration.
     """
     stack = inspect.stack()
@@ -89,13 +93,25 @@ def job(name_or_callable: typing.Union[str, typing.Callable]) -> typing.Union[ty
     module = _get_module(stack)
     version = _get_version(module)
 
-    if type(name_or_callable) is str:
+    # Use case where it's just raw @f. Otherwise we get [] here.
+    if len(args) == 1 and callable(args[0]):
+        f = args[0]
+        return _generate_rialto_job(callable=f, module=module, class_name=f.__name__, version=version)
 
-        def inner_wrapper(callable):
-            return _generate_rialto_job(callable, module, name_or_callable, version)
+    # If custom args are specified, we need to return one more wrapper
+    def inner_wrapper(f):
+        # Setting default custom name, in case user only disables version
+        class_name = f.__name__
+        nullable_version = version
 
-        return inner_wrapper
+        # User - Specified custom name
+        if custom_name is not None:
+            class_name = custom_name
 
-    else:
-        name = name_or_callable.__name__
-        return _generate_rialto_job(name_or_callable, module, name, version)
+        # Setting version to None causes JobBase to not fill it
+        if disable_version:
+            nullable_version = None
+
+        return _generate_rialto_job(callable=f, module=module, class_name=class_name, version=nullable_version)
+
+    return inner_wrapper

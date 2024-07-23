@@ -26,9 +26,14 @@ def job_function():
     return "job_function_return"
 
 
-@job("custom_job_name")
+@job(custom_name="custom_job_name")
 def custom_name_job_function():
     return "custom_job_name_return"
+
+
+@job(disable_version=True)
+def disable_version_job_function():
+    return "disabled_version_job_return"
 
 
 @job
