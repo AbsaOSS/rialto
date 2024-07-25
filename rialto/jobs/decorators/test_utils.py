@@ -17,7 +17,9 @@ __all__ = ["disable_job_decorators"]
 import importlib
 import typing
 from contextlib import contextmanager
-from unittest.mock import patch
+from unittest.mock import patch, create_autospec, MagicMock
+from rialto.jobs.decorators.resolver import Resolver, ResolverException
+from rialto.jobs.decorators.job_base import JobBase
 
 
 def _passthrough_decorator(*args, **kwargs) -> typing.Callable:
@@ -58,3 +60,45 @@ def disable_job_decorators(module) -> None:
         yield
 
     importlib.reload(module)
+
+
+def resolver_resolves(spark, job: JobBase) -> bool:
+    """
+    Checker method for your dependency resoultion.
+
+    If your job's dependencies are all defined and resolvable, returns true.
+    Otherwise, throws an exception.
+
+    :param spark: SparkSession object.
+    :param job: Job to try and resolve.
+
+    :return: bool, True if job can be resolved
+    """
+
+    class SmartStorage:
+        def __init__(self):
+            self._storage = Resolver._storage.copy()
+            self._call_stack = []
+
+        def __setitem__(self, key, value):
+            self._storage[key] = value
+
+        def keys(self):
+            return self._storage.keys()
+
+        def __getitem__(self, func_name):
+            if func_name in self._call_stack:
+                raise ResolverException(f"Circular Dependence on {func_name}!")
+
+            self._call_stack.append(func_name)
+
+            real_method = self._storage[func_name]
+            fake_method = create_autospec(real_method)
+            fake_method.side_effect = lambda *args, **kwargs: self._call_stack.remove(func_name)
+
+            return fake_method
+
+    with patch("rialto.jobs.decorators.resolver.Resolver._storage", SmartStorage()):
+        job().run(reader=MagicMock(), run_date=MagicMock(), spark=spark)
+
+    return True
