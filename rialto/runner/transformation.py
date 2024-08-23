@@ -43,6 +43,7 @@ class Transformation(metaclass=abc.ABCMeta):
         :param run_date: date
         :param spark: spark session
         :param metadata_manager: metadata api object
+        :param dependencies: dictionary of dependencies
         :return: dataframe
         """
         raise NotImplementedError
