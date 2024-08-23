@@ -19,7 +19,6 @@ import pytest
 from pyspark.sql import DataFrame
 
 from rialto.common.table_reader import DataReader
-from rialto.jobs.configuration.config_holder import ConfigHolder
 from rialto.runner.runner import DateManager, Runner
 from rialto.runner.table import Table
 from tests.runner.runner_resources import (
@@ -38,8 +37,8 @@ class MockReader(DataReader):
     def get_table(
         self,
         table: str,
-        info_date_from: Optional[datetime.date] = None,
-        info_date_to: Optional[datetime.date] = None,
+        date_from: Optional[datetime.date] = None,
+        date_to: Optional[datetime.date] = None,
         date_column: str = None,
         uppercase_columns: bool = False,
     ) -> DataFrame:
@@ -53,7 +52,7 @@ class MockReader(DataReader):
     def get_latest(
         self,
         table: str,
-        until: Optional[datetime.date] = None,
+        date_until: Optional[datetime.date] = None,
         date_column: str = None,
         uppercase_columns: bool = False,
     ) -> DataFrame:
@@ -84,43 +83,41 @@ def test_load_module(spark, basic_runner):
 def test_generate(spark, mocker, basic_runner):
     run = mocker.patch("tests.runner.transformations.simple_group.SimpleGroup.run")
     group = SimpleGroup()
-    basic_runner._generate(group, DateManager.str_to_date("2023-01-31"))
+    config = basic_runner.config.pipelines[0]
+    basic_runner._generate(group, DateManager.str_to_date("2023-01-31"), config)
+
     run.assert_called_once_with(
         reader=basic_runner.reader,
         run_date=DateManager.str_to_date("2023-01-31"),
         spark=spark,
-        metadata_manager=basic_runner.metadata,
-        dependencies=None,
+        config=config,
+        metadata_manager=None,
+        feature_loader=None,
     )
 
 
 def test_generate_w_dep(spark, mocker, basic_runner):
     run = mocker.patch("tests.runner.transformations.simple_group.SimpleGroup.run")
     group = SimpleGroup()
-    basic_runner._generate(group, DateManager.str_to_date("2023-01-31"), basic_runner.config.pipelines[2].dependencies)
+    basic_runner._generate(group, DateManager.str_to_date("2023-01-31"), basic_runner.config.pipelines[2])
     run.assert_called_once_with(
         reader=basic_runner.reader,
         run_date=DateManager.str_to_date("2023-01-31"),
         spark=spark,
-        metadata_manager=basic_runner.metadata,
-        dependencies={
-            "source1": basic_runner.config.pipelines[2].dependencies[0],
-            "source2": basic_runner.config.pipelines[2].dependencies[1],
-        },
+        config=basic_runner.config.pipelines[2],
+        metadata_manager=None,
+        feature_loader=None,
     )
 
 
 def test_init_dates(spark):
-    runner = Runner(
-        spark, config_path="tests/runner/transformations/config.yaml", feature_metadata_schema="", run_date="2023-03-31"
-    )
+    runner = Runner(spark, config_path="tests/runner/transformations/config.yaml", run_date="2023-03-31")
     assert runner.date_from == DateManager.str_to_date("2023-01-31")
     assert runner.date_until == DateManager.str_to_date("2023-03-31")
 
     runner = Runner(
         spark,
         config_path="tests/runner/transformations/config.yaml",
-        feature_metadata_schema="",
         date_from="2023-03-01",
         date_until="2023-03-31",
     )
@@ -130,7 +127,6 @@ def test_init_dates(spark):
     runner = Runner(
         spark,
         config_path="tests/runner/transformations/config2.yaml",
-        feature_metadata_schema="",
         run_date="2023-03-31",
     )
     assert runner.date_from == DateManager.str_to_date("2023-02-24")
@@ -141,7 +137,6 @@ def test_possible_run_dates(spark):
     runner = Runner(
         spark,
         config_path="tests/runner/transformations/config.yaml",
-        feature_metadata_schema="",
         date_from="2023-03-01",
         date_until="2023-03-31",
     )
@@ -175,9 +170,7 @@ def test_completion(spark, mocker, basic_runner):
 def test_completion_rerun(spark, mocker, basic_runner):
     mocker.patch("rialto.runner.runner.Runner._table_exists", return_value=True)
 
-    runner = Runner(
-        spark, config_path="tests/runner/transformations/config.yaml", feature_metadata_schema="", run_date="2023-03-31"
-    )
+    runner = Runner(spark, config_path="tests/runner/transformations/config.yaml", run_date="2023-03-31")
     runner.reader = MockReader(spark)
 
     dates = ["2023-02-26", "2023-03-05", "2023-03-12", "2023-03-19", "2023-03-26"]
@@ -194,7 +187,6 @@ def test_check_dates_have_partition(spark, mocker):
     runner = Runner(
         spark,
         config_path="tests/runner/transformations/config.yaml",
-        feature_metadata_schema="",
         date_from="2023-03-01",
         date_until="2023-03-31",
     )
@@ -212,7 +204,6 @@ def test_check_dates_have_partition_no_table(spark, mocker):
     runner = Runner(
         spark,
         config_path="tests/runner/transformations/config.yaml",
-        feature_metadata_schema="",
         date_from="2023-03-01",
         date_until="2023-03-31",
     )
@@ -233,7 +224,6 @@ def test_check_dependencies(spark, mocker, r_date, expected):
     runner = Runner(
         spark,
         config_path="tests/runner/transformations/config.yaml",
-        feature_metadata_schema="",
         date_from="2023-03-01",
         date_until="2023-03-31",
     )
@@ -248,7 +238,6 @@ def test_check_no_dependencies(spark, mocker):
     runner = Runner(
         spark,
         config_path="tests/runner/transformations/config.yaml",
-        feature_metadata_schema="",
         date_from="2023-03-01",
         date_until="2023-03-31",
     )
@@ -263,7 +252,6 @@ def test_select_dates(spark, mocker):
     runner = Runner(
         spark,
         config_path="tests/runner/transformations/config.yaml",
-        feature_metadata_schema="",
         date_from="2023-03-01",
         date_until="2023-03-31",
     )
@@ -286,7 +274,6 @@ def test_select_dates_all_done(spark, mocker):
     runner = Runner(
         spark,
         config_path="tests/runner/transformations/config.yaml",
-        feature_metadata_schema="",
         date_from="2023-03-02",
         date_until="2023-03-02",
     )
@@ -307,9 +294,7 @@ def test_op_selected(spark, mocker):
     mocker.patch("rialto.runner.tracker.Tracker.report")
     run = mocker.patch("rialto.runner.runner.Runner._run_pipeline")
 
-    runner = Runner(
-        spark, config_path="tests/runner/transformations/config.yaml", feature_metadata_schema="", op="SimpleGroup"
-    )
+    runner = Runner(spark, config_path="tests/runner/transformations/config.yaml", op="SimpleGroup")
 
     runner()
     run.called_once()
@@ -319,42 +304,8 @@ def test_op_bad(spark, mocker):
     mocker.patch("rialto.runner.tracker.Tracker.report")
     mocker.patch("rialto.runner.runner.Runner._run_pipeline")
 
-    runner = Runner(
-        spark, config_path="tests/runner/transformations/config.yaml", feature_metadata_schema="", op="BadOp"
-    )
+    runner = Runner(spark, config_path="tests/runner/transformations/config.yaml", op="BadOp")
 
     with pytest.raises(ValueError) as exception:
         runner()
     assert str(exception.value) == "Unknown operation selected: BadOp"
-
-
-def test_custom_config(spark, mocker):
-    cc_spy = mocker.spy(ConfigHolder, "set_custom_config")
-    custom_config = {"cc": 42}
-
-    _ = Runner(spark, config_path="tests/runner/transformations/config.yaml", custom_job_config=custom_config)
-
-    cc_spy.assert_called_once_with(cc=42)
-
-
-def test_feature_store_config(spark, mocker):
-    fs_spy = mocker.spy(ConfigHolder, "set_feature_store_config")
-
-    _ = Runner(
-        spark,
-        config_path="tests/runner/transformations/config.yaml",
-        feature_store_schema="schema",
-        feature_metadata_schema="metadata",
-    )
-
-    fs_spy.assert_called_once_with("schema", "metadata")
-
-
-def test_no_configs(spark, mocker):
-    cc_spy = mocker.spy(ConfigHolder, "set_custom_config")
-    fs_spy = mocker.spy(ConfigHolder, "set_feature_store_config")
-
-    _ = Runner(spark, config_path="tests/runner/transformations/config.yaml")
-
-    cc_spy.assert_not_called()
-    fs_spy.assert_not_called()

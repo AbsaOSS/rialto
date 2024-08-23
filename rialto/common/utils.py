@@ -12,13 +12,14 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-__all__ = ["load_yaml", "get_date_col_property", "get_delta_partition"]
+__all__ = ["load_yaml"]
 
 import os
 from typing import Any
 
 import pyspark.sql.functions as F
 import yaml
+from env_yaml import EnvLoader
 from pyspark.sql import DataFrame
 from pyspark.sql.types import FloatType
 
@@ -34,7 +35,7 @@ def load_yaml(path: str) -> Any:
         raise FileNotFoundError(f"Can't find {path}.")
 
     with open(path, "r") as stream:
-        return yaml.safe_load(stream)
+        return yaml.load(stream, EnvLoader)
 
 
 def get_date_col_property(spark, table: str, property: str) -> str:

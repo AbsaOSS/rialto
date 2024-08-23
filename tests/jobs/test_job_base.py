@@ -14,42 +14,36 @@
 
 
 import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pyspark.sql.types
 
 import tests.jobs.resources as resources
-from rialto.jobs.configuration.config_holder import ConfigHolder, FeatureStoreConfig
 from rialto.jobs.decorators.resolver import Resolver
-from rialto.loader import PysparkFeatureLoader
+from rialto.loader import DatabricksLoader, PysparkFeatureLoader
 
 
 def test_setup_except_feature_loader(spark):
     table_reader = MagicMock()
+    config = MagicMock()
     date = datetime.date(2023, 1, 1)
 
-    ConfigHolder.set_custom_config(hello=1, world=2)
-
-    resources.CustomJobNoReturnVal().run(
-        reader=table_reader, run_date=date, spark=spark, metadata_manager=None, dependencies={1: 1}
-    )
+    resources.CustomJobNoReturnVal().run(reader=table_reader, run_date=date, spark=spark, config=config)
 
     assert Resolver.resolve("run_date") == date
-    assert Resolver.resolve("config") == ConfigHolder.get_config()
-    assert Resolver.resolve("dependencies") == ConfigHolder.get_dependency_config()
+    assert Resolver.resolve("config") == config
     assert Resolver.resolve("spark") == spark
     assert Resolver.resolve("table_reader") == table_reader
 
 
-@patch(
-    "rialto.jobs.configuration.config_holder.ConfigHolder.get_feature_store_config",
-    return_value=FeatureStoreConfig(feature_store_schema="schema", feature_metadata_schema="metadata_schema"),
-)
 def test_setup_feature_loader(spark):
     table_reader = MagicMock()
     date = datetime.date(2023, 1, 1)
+    feature_loader = PysparkFeatureLoader(spark, DatabricksLoader(spark, "", ""), "")
 
-    resources.CustomJobNoReturnVal().run(reader=table_reader, run_date=date, spark=spark, metadata_manager=None)
+    resources.CustomJobNoReturnVal().run(
+        reader=table_reader, run_date=date, spark=spark, config=None, feature_loader=feature_loader
+    )
 
     assert type(Resolver.resolve("feature_loader")) == PysparkFeatureLoader
 
@@ -60,7 +54,7 @@ def test_custom_callable_called(spark, mocker):
     table_reader = MagicMock()
     date = datetime.date(2023, 1, 1)
 
-    resources.CustomJobNoReturnVal().run(reader=table_reader, run_date=date, spark=spark, metadata_manager=None)
+    resources.CustomJobNoReturnVal().run(reader=table_reader, run_date=date, spark=spark, config=None)
 
     spy_cc.assert_called_once()
 
@@ -69,9 +63,7 @@ def test_no_return_vaue_adds_version_timestamp_dataframe(spark):
     table_reader = MagicMock()
     date = datetime.date(2023, 1, 1)
 
-    result = resources.CustomJobNoReturnVal().run(
-        reader=table_reader, run_date=date, spark=spark, metadata_manager=None
-    )
+    result = resources.CustomJobNoReturnVal().run(reader=table_reader, run_date=date, spark=spark, config=None)
 
     assert type(result) is pyspark.sql.DataFrame
     assert result.columns == ["JOB_NAME", "CREATION_TIME", "VERSION"]
@@ -83,9 +75,7 @@ def test_return_dataframe_forwarded_with_version(spark):
     table_reader = MagicMock()
     date = datetime.date(2023, 1, 1)
 
-    result = resources.CustomJobReturnsDataFrame().run(
-        reader=table_reader, run_date=date, spark=spark, metadata_manager=None
-    )
+    result = resources.CustomJobReturnsDataFrame().run(reader=table_reader, run_date=date, spark=spark, config=None)
 
     assert type(result) is pyspark.sql.DataFrame
     assert result.columns == ["FIRST", "SECOND", "VERSION"]
@@ -97,7 +87,7 @@ def test_none_job_version_wont_fill_job_colun(spark):
     table_reader = MagicMock()
     date = datetime.date(2023, 1, 1)
 
-    result = resources.CustomJobNoVersion().run(reader=table_reader, run_date=date, spark=spark, metadata_manager=None)
+    result = resources.CustomJobNoVersion().run(reader=table_reader, run_date=date, spark=spark, config=None)
 
     assert type(result) is pyspark.sql.DataFrame
     assert "VERSION" not in result.columns

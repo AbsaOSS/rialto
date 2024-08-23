@@ -12,7 +12,9 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-__all__ = ["get_pipelines_config", "transform_dependencies"]
+__all__ = [
+    "get_pipelines_config",
+]
 
 from typing import Dict, List, Optional, Union
 
@@ -35,7 +37,7 @@ class ScheduleConfig(BaseModel):
 class DependencyConfig(BaseModel):
     table: str
     name: Optional[str] = None
-    date_col: Optional[str] = None
+    date_col: str
     interval: IntervalConfig
 
 
@@ -52,37 +54,43 @@ class MailConfig(BaseModel):
     sent_empty: Optional[bool] = False
 
 
-class GeneralConfig(BaseModel):
-    target_schema: str
-    target_partition_column: str
-    source_date_column_property: Optional[str] = None
+class RunnerConfig(BaseModel):
     watched_period_units: str
     watched_period_value: int
-    job: str
     mail: MailConfig
+
+
+class TargetConfig(BaseModel):
+    target_schema: str
+    target_partition_column: str
+
+
+class MetadataManagerConfig(BaseModel):
+    metadata_schema: str
+
+
+class FeatureLoaderConfig(BaseModel):
+    config_path: str
+    feature_schema: str
+    metadata_schema: str
 
 
 class PipelineConfig(BaseModel):
     name: str
-    module: Optional[ModuleConfig] = None
+    module: ModuleConfig
     schedule: ScheduleConfig
-    dependencies: List[DependencyConfig] = []
+    dependencies: Optional[List[DependencyConfig]] = []
+    target: Optional[TargetConfig] = None
+    metadata_manager: Optional[MetadataManagerConfig] = None
+    feature_loader: Optional[FeatureLoaderConfig] = None
+    extras: Optional[Dict] = {}
 
 
 class PipelinesConfig(BaseModel):
-    general: GeneralConfig
+    runner: RunnerConfig
     pipelines: list[PipelineConfig]
 
 
 def get_pipelines_config(path) -> PipelinesConfig:
     """Load and parse yaml config"""
     return PipelinesConfig(**load_yaml(path))
-
-
-def transform_dependencies(dependencies: List[DependencyConfig]) -> Dict:
-    """Transform dependency config list into a dictionary"""
-    res = {}
-    for dep in dependencies:
-        if dep.name:
-            res[dep.name] = dep
-    return res

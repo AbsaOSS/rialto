@@ -30,7 +30,7 @@ class Resolver:
     Resolver handles dependency management between datasets and jobs.
 
     We register different callables, which can depend on other callables.
-    Calling resolve() we attempts to resolve these dependencies.
+    Calling resolve() we attempt to resolve these dependencies.
     """
 
     _storage = {}

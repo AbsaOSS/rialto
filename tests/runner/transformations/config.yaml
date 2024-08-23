@@ -12,12 +12,9 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-general:
-  target_schema: catalog.schema
-  target_partition_column: "INFORMATION_DATE"
+runner:
   watched_period_units: "months"
   watched_period_value: 2
-  job: "run" # run/check
   mail:
     sender: test@testing.org
     smtp: server.test
@@ -47,6 +44,9 @@ pipelines:
           units: "months"
           value: 3
         date_col: "DATE"
+    target:
+      target_schema: catalog.schema
+      target_partition_column: "INFORMATION_DATE"
   - name: GroupNoDeps
     module:
       python_module: tests.runner.transformations
@@ -80,3 +80,6 @@ pipelines:
          units: "months"
          value: 3
        date_col: "batch"
+    target:
+      target_schema: catalog.schema
+      target_partition_column: "INFORMATION_DATE"

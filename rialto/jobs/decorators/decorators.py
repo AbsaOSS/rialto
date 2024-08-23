@@ -77,14 +77,14 @@ def job(*args, custom_name=None, disable_version=False):
     """
     Rialto jobs decorator.
 
-    Transforms a python function into a rialto transormation, which can be imported and ran by Rialto Runner.
+    Transforms a python function into a rialto transformation, which can be imported and ran by Rialto Runner.
     Is mainly used as @job and the function's name is used, and the outputs get automatic.
     To override this behavior, use @job(custom_name=XXX, disable_version=True).
 
 
     :param *args:  list of positional arguments. Empty in case custom_name or disable_version is specified.
     :param custom_name:  str for custom job name.
-    :param disable_version:  bool for disabling autofilling the VERSION column in the job's outputs.
+    :param disable_version:  bool for disabling automobiling the VERSION column in the job's outputs.
     :return: One more job wrapper for run function (if custom name or version override specified).
              Otherwise, generates Rialto Transformation Type and returns it for in-module registration.
     """

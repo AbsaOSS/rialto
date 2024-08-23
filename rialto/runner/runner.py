@@ -24,16 +24,13 @@ from loguru import logger
 from pyspark.sql import DataFrame, SparkSession
 
 from rialto.common import TableReader
-from rialto.common.utils import get_date_col_property, get_delta_partition
-from rialto.jobs.configuration.config_holder import ConfigHolder
+from rialto.loader import DatabricksLoader, PysparkFeatureLoader
 from rialto.metadata import MetadataManager
 from rialto.runner.config_loader import (
-    DependencyConfig,
     ModuleConfig,
     PipelineConfig,
     ScheduleConfig,
     get_pipelines_config,
-    transform_dependencies,
 )
 from rialto.runner.date_manager import DateManager
 from rialto.runner.table import Table
@@ -48,35 +45,23 @@ class Runner:
         self,
         spark: SparkSession,
         config_path: str,
-        feature_metadata_schema: str = None,
         run_date: str = None,
         date_from: str = None,
         date_until: str = None,
-        feature_store_schema: str = None,
-        custom_job_config: dict = None,
         rerun: bool = False,
         op: str = None,
+        skip_dependencies: bool = False,
     ):
         self.spark = spark
         self.config = get_pipelines_config(config_path)
-        self.reader = TableReader(
-            spark, date_property=self.config.general.source_date_column_property, infer_partition=False
-        )
-        if feature_metadata_schema:
-            self.metadata = MetadataManager(spark, feature_metadata_schema)
-        else:
-            self.metadata = None
+        self.reader = TableReader(spark)
+
         self.date_from = date_from
         self.date_until = date_until
         self.rerun = rerun
+        self.skip_dependencies = skip_dependencies
         self.op = op
-        self.tracker = Tracker(self.config.general.target_schema)
-
-        if (feature_store_schema is not None) and (feature_metadata_schema is not None):
-            ConfigHolder.set_feature_store_config(feature_store_schema, feature_metadata_schema)
-
-        if custom_job_config is not None:
-            ConfigHolder.set_custom_config(**custom_job_config)
+        self.tracker = Tracker()
 
         if run_date:
             run_date = DateManager.str_to_date(run_date)
@@ -90,8 +75,8 @@ class Runner:
         if not self.date_from:
             self.date_from = DateManager.date_subtract(
                 run_date=run_date,
-                units=self.config.general.watched_period_units,
-                value=self.config.general.watched_period_value,
+                units=self.config.runner.watched_period_units,
+                value=self.config.runner.watched_period_value,
             )
         if not self.date_until:
             self.date_until = run_date
@@ -110,24 +95,36 @@ class Runner:
         class_obj = getattr(module, cfg.python_class)
         return class_obj()
 
-    def _generate(
-        self, instance: Transformation, run_date: date, dependencies: List[DependencyConfig] = None
-    ) -> DataFrame:
+    def _generate(self, instance: Transformation, run_date: date, pipeline: PipelineConfig) -> DataFrame:
         """
         Run feature group
 
         :param instance: Instance of Transformation
         :param run_date: date to run for
+        :param pipeline: pipeline configuration
         :return: Dataframe
         """
-        if dependencies is not None:
-            dependencies = transform_dependencies(dependencies)
+        if pipeline.metadata_manager is not None:
+            metadata_manager = MetadataManager(self.spark, pipeline.metadata_manager.metadata_schema)
+        else:
+            metadata_manager = None
+
+        if pipeline.feature_loader is not None:
+            feature_loader = PysparkFeatureLoader(
+                self.spark,
+                DatabricksLoader(self.spark, schema=pipeline.feature_loader.feature_schema),
+                metadata_schema=pipeline.feature_loader.metadata_schema,
+            )
+        else:
+            feature_loader = None
+
         df = instance.run(
-            reader=self.reader,
-            run_date=run_date,
             spark=self.spark,
-            metadata_manager=self.metadata,
-            dependencies=dependencies,
+            run_date=run_date,
+            config=pipeline,
+            reader=self.reader,
+            metadata_manager=metadata_manager,
+            feature_loader=feature_loader,
         )
         logger.info(f"Generated {df.count()} records")
 
@@ -154,15 +151,6 @@ class Runner:
         df = df.withColumn(table.partition, F.lit(info_date))
         df.write.partitionBy(table.partition).mode("overwrite").saveAsTable(table.get_table_path())
         logger.info(f"Results writen to {table.get_table_path()}")
-
-        try:
-            get_date_col_property(self.spark, table.get_table_path(), "rialto_date_column")
-        except RuntimeError:
-            sql_query = (
-                f"ALTER TABLE {table.get_table_path()} SET TBLPROPERTIES ('rialto_date_column' = '{table.partition}')"
-            )
-            self.spark.sql(sql_query)
-            logger.info(f"Set table property rialto_date_column to {table.partition}")
 
     def _delta_partition(self, table: str) -> str:
         """
@@ -226,18 +214,9 @@ class Runner:
 
             possible_dep_dates = DateManager.all_dates(dep_from, run_date)
 
-            # date column options prioritization (manual column, table property, inferred from delta)
-            if dependency.date_col:
-                date_col = dependency.date_col
-            elif self.config.general.source_date_column_property:
-                date_col = get_date_col_property(
-                    self.spark, dependency.table, self.config.general.source_date_column_property
-                )
-            else:
-                date_col = get_delta_partition(self.spark, dependency.table)
-            logger.debug(f"Date column for {dependency.table} is {date_col}")
+            logger.debug(f"Date column for {dependency.table} is {dependency.date_col}")
 
-            source = Table(table_path=dependency.table, partition=date_col)
+            source = Table(table_path=dependency.table, partition=dependency.date_col)
             if True in self.check_dates_have_partition(source, possible_dep_dates):
                 logger.info(f"Dependency for {dependency.table} from {dep_from} until {run_date} is fulfilled")
             else:
@@ -318,18 +297,17 @@ class Runner:
         :param target: target Table
         :return: success bool
         """
-        if self.check_dependencies(pipeline, run_date):
+        if self.skip_dependencies or self.check_dependencies(pipeline, run_date):
             logger.info(f"Running {pipeline.name} for {run_date}")
 
-            if self.config.general.job == "run":
-                feature_group = self._load_module(pipeline.module)
-                df = self._generate(feature_group, run_date, pipeline.dependencies)
-                records = df.count()
-                if records > 0:
-                    self._write(df, info_date, target)
-                    return records
-                else:
-                    raise RuntimeError("No records generated")
+            feature_group = self._load_module(pipeline.module)
+            df = self._generate(feature_group, run_date, pipeline)
+            records = df.count()
+            if records > 0:
+                self._write(df, info_date, target)
+                return records
+            else:
+                raise RuntimeError("No records generated")
         return 0
 
     def _run_pipeline(self, pipeline: PipelineConfig):
@@ -340,9 +318,9 @@ class Runner:
         :return: success bool
         """
         target = Table(
-            schema_path=self.config.general.target_schema,
+            schema_path=pipeline.target.target_schema,
             class_name=pipeline.module.python_class,
-            partition=self.config.general.target_partition_column,
+            partition=pipeline.target.target_partition_column,
         )
         logger.info(f"Loaded pipeline {pipeline.name}")
 
@@ -413,4 +391,4 @@ class Runner:
                     self._run_pipeline(pipeline)
         finally:
             print(self.tracker.records)
-            self.tracker.report(self.config.general.mail)
+            self.tracker.report(self.config.runner.mail)

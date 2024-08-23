@@ -14,7 +14,6 @@
 
 from importlib import import_module
 
-from rialto.jobs.configuration.config_holder import ConfigHolder
 from rialto.jobs.decorators.job_base import JobBase
 from rialto.jobs.decorators.resolver import Resolver
 
@@ -70,7 +69,6 @@ def test_job_disabling_version():
 
 
 def test_job_dependencies_registered(spark):
-    ConfigHolder.set_custom_config(value=123)
     job_class = _rialto_import_stub("tests.jobs.test_job.test_job", "job_asking_for_all_deps")
     # asserts part of the run
-    job_class.run(spark=spark, run_date=456, reader=789, metadata_manager=None, dependencies=1011)
+    job_class.run(spark=spark, run_date=456, reader=789, config=123, metadata_manager=654, feature_loader=321)

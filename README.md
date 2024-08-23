@@ -312,17 +312,18 @@ from pyspark.sql import DataFrame
 from rialto.common import TableReader
 from rialto.jobs.decorators import job, datasource
 
+
 @datasource
 def my_datasource(run_date: datetime.date, table_reader: TableReader) -> DataFrame:
-  return table_reader.get_latest("my_catalog.my_schema.my_table", until=run_date)
+    return table_reader.get_latest("my_catalog.my_schema.my_table", date_until=run_date)
 
 
 @job
 def my_job(my_datasource: DataFrame) -> DataFrame:
-  return my_datasource.withColumn("HelloWorld", F.lit(1))
+    return my_datasource.withColumn("HelloWorld", F.lit(1))
 ```
-This piece of code 
-1. creates a rialto transformation called *my_job*, which is then callable by the rialto runner. 
+This piece of code
+1. creates a rialto transformation called *my_job*, which is then callable by the rialto runner.
 2. It sources the *my_datasource* and then runs *my_job* on top of that datasource.
 3. Rialto adds VERSION (of your package) and INFORMATION_DATE (as per config) columns automatically.
 4. The rialto runner stores the final to a catalog, to a table according to the job's name.
@@ -383,20 +384,20 @@ import my_package.test_job_module as tjm
 # Datasource Testing
 def test_datasource_a():
     ... mocks here ...
-    
+
     with disable_job_decorators(tjm):
         datasource_a_output = tjm.datasource_a(... mocks ...)
-        
+
         ... asserts ...
-        
+
 # Job Testing
 def test_my_job():
     datasource_a_mock = ...
     ... other mocks...
-    
+
     with disable_job_decorators(tjm):
         job_output = tjm.my_job(datasource_a_mock, ... mocks ...)
-    
+
         ... asserts ...
 ```
 
@@ -563,6 +564,7 @@ reader = TableReader(spark=spark_instance)
 ```
 
 usage of _get_table_:
+
 ```python
 # get whole table
 df = reader.get_table(table="catalog.schema.table", date_column="information_date")
@@ -573,10 +575,11 @@ from datetime import datetime
 start = datetime.strptime("2020-01-01", "%Y-%m-%d").date()
 end = datetime.strptime("2024-01-01", "%Y-%m-%d").date()
 
-df = reader.get_table(table="catalog.schema.table", info_date_from=start, info_date_to=end)
+df = reader.get_table(table="catalog.schema.table", date_from=start, date_to=end)
 ```
 
 usage of _get_latest_:
+
 ```python
 # most recent partition
 df = reader.get_latest(table="catalog.schema.table", date_column="information_date")
@@ -584,7 +587,7 @@ df = reader.get_latest(table="catalog.schema.table", date_column="information_da
 # most recent partition until
 until = datetime.strptime("2020-01-01", "%Y-%m-%d").date()
 
-df = reader.get_latest(table="catalog.schema.table", until=until, date_column="information_date")
+df = reader.get_latest(table="catalog.schema.table", date_until=until, date_column="information_date")
 
 ```
 For full information on parameters and their optionality see technical documentation.

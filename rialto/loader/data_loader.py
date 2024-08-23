@@ -41,5 +41,5 @@ class DatabricksLoader(DataLoader):
         :return: dataframe
         """
         return self.reader.get_latest(
-            f"{self.schema}.{group}", until=information_date, date_column=self.date_col, uppercase_columns=True
+            f"{self.schema}.{group}", date_until=information_date, date_column=self.date_col, uppercase_columns=True
         )
