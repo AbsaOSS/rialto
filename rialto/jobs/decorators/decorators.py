@@ -84,7 +84,7 @@ def job(*args, custom_name=None, disable_version=False):
 
     :param *args:  list of positional arguments. Empty in case custom_name or disable_version is specified.
     :param custom_name:  str for custom job name.
-    :param disable_version:  bool for disabling automobiling the VERSION column in the job's outputs.
+    :param disable_version:  bool for disabling automatically filling the VERSION column in the job's outputs.
     :return: One more job wrapper for run function (if custom name or version override specified).
              Otherwise, generates Rialto Transformation Type and returns it for in-module registration.
     """
