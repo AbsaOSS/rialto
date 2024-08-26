@@ -93,7 +93,7 @@ def job(*args, custom_name=None, disable_version=False):
     module = _get_module(stack)
     version = _get_version(module)
 
-    # Use case where it's just raw @f. Otherwise we get [] here.
+    # Use case where it's just raw @f. Otherwise, we get [] here.
     if len(args) == 1 and callable(args[0]):
         f = args[0]
         return _generate_rialto_job(callable=f, module=module, class_name=f.__name__, version=version)

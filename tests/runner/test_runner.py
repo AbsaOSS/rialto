@@ -11,7 +11,6 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-from collections import namedtuple
 from datetime import datetime
 from typing import Optional
 
@@ -61,18 +60,8 @@ class MockReader(DataReader):
 
 def test_table_exists(spark, mocker, basic_runner):
     mock = mocker.patch("pyspark.sql.Catalog.tableExists", return_value=True)
-    basic_runner._table_exists("abc")
+    basic_runner.table_exists("abc")
     mock.assert_called_once_with("abc")
-
-
-def test_infer_column(spark, mocker, basic_runner):
-    column = namedtuple("catalog", ["name", "isPartition"])
-    catalog = [column("a", True), column("b", False), column("c", False)]
-
-    mock = mocker.patch("pyspark.sql.Catalog.listColumns", return_value=catalog)
-    partition = basic_runner._delta_partition("aaa")
-    assert partition == "a"
-    mock.assert_called_once_with("aaa")
 
 
 def test_load_module(spark, basic_runner):
@@ -84,7 +73,7 @@ def test_generate(spark, mocker, basic_runner):
     run = mocker.patch("tests.runner.transformations.simple_group.SimpleGroup.run")
     group = SimpleGroup()
     config = basic_runner.config.pipelines[0]
-    basic_runner._generate(group, DateManager.str_to_date("2023-01-31"), config)
+    basic_runner._execute(group, DateManager.str_to_date("2023-01-31"), config)
 
     run.assert_called_once_with(
         reader=basic_runner.reader,
@@ -99,7 +88,7 @@ def test_generate(spark, mocker, basic_runner):
 def test_generate_w_dep(spark, mocker, basic_runner):
     run = mocker.patch("tests.runner.transformations.simple_group.SimpleGroup.run")
     group = SimpleGroup()
-    basic_runner._generate(group, DateManager.str_to_date("2023-01-31"), basic_runner.config.pipelines[2])
+    basic_runner._execute(group, DateManager.str_to_date("2023-01-31"), basic_runner.config.pipelines[2])
     run.assert_called_once_with(
         reader=basic_runner.reader,
         run_date=DateManager.str_to_date("2023-01-31"),
@@ -131,27 +120,6 @@ def test_init_dates(spark):
     )
     assert runner.date_from == DateManager.str_to_date("2023-02-24")
     assert runner.date_until == DateManager.str_to_date("2023-03-31")
-
-
-def test_possible_run_dates(spark):
-    runner = Runner(
-        spark,
-        config_path="tests/runner/transformations/config.yaml",
-        date_from="2023-03-01",
-        date_until="2023-03-31",
-    )
-
-    dates = runner.get_possible_run_dates(runner.config.pipelines[0].schedule)
-    expected = ["2023-03-05", "2023-03-12", "2023-03-19", "2023-03-26"]
-    assert dates == [DateManager.str_to_date(d) for d in expected]
-
-
-def test_info_dates(spark, basic_runner):
-    run = ["2023-02-05", "2023-02-12", "2023-02-19", "2023-02-26", "2023-03-05"]
-    run = [DateManager.str_to_date(d) for d in run]
-    info = basic_runner.get_info_dates(basic_runner.config.pipelines[0].schedule, run)
-    expected = ["2023-02-02", "2023-02-09", "2023-02-16", "2023-02-23", "2023-03-02"]
-    assert info == [DateManager.str_to_date(d) for d in expected]
 
 
 def test_completion(spark, mocker, basic_runner):

@@ -101,7 +101,7 @@ class Resolver:
         """
         Clear resolver cache.
 
-        The resolve mehtod caches its results to avoid duplication of resolutions.
+        The resolve method caches its results to avoid duplication of resolutions.
         However, in case we re-register some callables, we need to clear cache
         in order to ensure re-execution of all resolutions.
 

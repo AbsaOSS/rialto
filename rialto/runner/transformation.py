@@ -19,7 +19,7 @@ import datetime
 
 from pyspark.sql import DataFrame, SparkSession
 
-from rialto.common import TableReader
+from rialto.common import DataReader
 from rialto.loader import PysparkFeatureLoader
 from rialto.metadata import MetadataManager
 from rialto.runner.config_loader import PipelineConfig
@@ -31,7 +31,7 @@ class Transformation(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def run(
         self,
-        reader: TableReader,
+        reader: DataReader,
         run_date: datetime.date,
         spark: SparkSession = None,
         config: PipelineConfig = None,

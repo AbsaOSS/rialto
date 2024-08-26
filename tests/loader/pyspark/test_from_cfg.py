@@ -21,7 +21,6 @@ import tests.loader.pyspark.resources as r
 from rialto.loader.config_loader import get_feature_config
 from rialto.loader.pyspark_feature_loader import PysparkFeatureLoader
 from tests.loader.pyspark.dataframe_builder import dataframe_builder as dfb
-from tests.loader.pyspark.dummy_loaders import DummyDataLoader
 
 
 @pytest.fixture(scope="session")
@@ -45,7 +44,7 @@ def spark(request):
 
 @pytest.fixture(scope="session")
 def loader(spark):
-    return PysparkFeatureLoader(spark, DummyDataLoader(), MagicMock())
+    return PysparkFeatureLoader(spark, MagicMock(), MagicMock())
 
 
 VALID_LIST = [(["a"], ["a"]), (["a"], ["a", "b", "c"]), (["c", "a"], ["a", "b", "c"])]
@@ -90,7 +89,7 @@ def test_add_group(spark, monkeypatch):
 
     metadata = MagicMock()
     monkeypatch.setattr(metadata, "get_group", GroupMd())
-    loader = PysparkFeatureLoader(spark, DummyDataLoader(), "")
+    loader = PysparkFeatureLoader(spark, "", "")
     loader.metadata = metadata
 
     base = dfb(spark, data=r.base_frame_data, columns=r.base_frame_columns)
@@ -105,7 +104,7 @@ def test_add_group(spark, monkeypatch):
 def test_get_group_metadata(spark, mocker):
     mocker.patch("rialto.loader.pyspark_feature_loader.MetadataManager.get_group", return_value=7)
 
-    loader = PysparkFeatureLoader(spark, DummyDataLoader(), "")
+    loader = PysparkFeatureLoader(spark, "", "")
     ret_val = loader.get_group_metadata("group_name")
 
     assert ret_val == 7
@@ -115,7 +114,7 @@ def test_get_group_metadata(spark, mocker):
 def test_get_feature_metadata(spark, mocker):
     mocker.patch("rialto.loader.pyspark_feature_loader.MetadataManager.get_feature", return_value=8)
 
-    loader = PysparkFeatureLoader(spark, DummyDataLoader(), "")
+    loader = PysparkFeatureLoader(spark, "", "")
     ret_val = loader.get_feature_metadata("group_name", "feature")
 
     assert ret_val == 8
@@ -129,7 +128,7 @@ def test_get_metadata_from_cfg(spark, mocker):
     )
     mocker.patch("rialto.loader.pyspark_feature_loader.MetadataManager.get_group", side_effect=lambda g: {"B": 10}[g])
 
-    loader = PysparkFeatureLoader(spark, DummyDataLoader(), "")
+    loader = PysparkFeatureLoader(spark, "", "")
     metadata = loader.get_metadata_from_cfg("tests/loader/pyspark/example_cfg.yaml")
 
     assert metadata["B_F1"] == 1

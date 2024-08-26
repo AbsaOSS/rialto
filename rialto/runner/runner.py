@@ -16,22 +16,15 @@ __all__ = ["Runner"]
 
 import datetime
 from datetime import date
-from importlib import import_module
 from typing import List, Tuple
 
 import pyspark.sql.functions as F
 from loguru import logger
 from pyspark.sql import DataFrame, SparkSession
 
+import rialto.runner.utils as utils
 from rialto.common import TableReader
-from rialto.loader import DatabricksLoader, PysparkFeatureLoader
-from rialto.metadata import MetadataManager
-from rialto.runner.config_loader import (
-    ModuleConfig,
-    PipelineConfig,
-    ScheduleConfig,
-    get_pipelines_config,
-)
+from rialto.runner.config_loader import PipelineConfig, get_pipelines_config
 from rialto.runner.date_manager import DateManager
 from rialto.runner.table import Table
 from rialto.runner.tracker import Record, Tracker
@@ -84,39 +77,16 @@ class Runner:
             raise ValueError(f"Invalid date range from {self.date_from} until {self.date_until}")
         logger.info(f"Running period from {self.date_from} until {self.date_until}")
 
-    def _load_module(self, cfg: ModuleConfig) -> Transformation:
+    def _execute(self, instance: Transformation, run_date: date, pipeline: PipelineConfig) -> DataFrame:
         """
-        Load feature group
-
-        :param cfg: Feature configuration
-        :return: Transformation object
-        """
-        module = import_module(cfg.python_module)
-        class_obj = getattr(module, cfg.python_class)
-        return class_obj()
-
-    def _generate(self, instance: Transformation, run_date: date, pipeline: PipelineConfig) -> DataFrame:
-        """
-        Run feature group
+        Run the job
 
         :param instance: Instance of Transformation
         :param run_date: date to run for
         :param pipeline: pipeline configuration
         :return: Dataframe
         """
-        if pipeline.metadata_manager is not None:
-            metadata_manager = MetadataManager(self.spark, pipeline.metadata_manager.metadata_schema)
-        else:
-            metadata_manager = None
-
-        if pipeline.feature_loader is not None:
-            feature_loader = PysparkFeatureLoader(
-                self.spark,
-                DatabricksLoader(self.spark, schema=pipeline.feature_loader.feature_schema),
-                metadata_schema=pipeline.feature_loader.metadata_schema,
-            )
-        else:
-            feature_loader = None
+        metadata_manager, feature_loader = utils.init_tools(self.spark, pipeline)
 
         df = instance.run(
             spark=self.spark,
@@ -129,15 +99,6 @@ class Runner:
         logger.info(f"Generated {df.count()} records")
 
         return df
-
-    def _table_exists(self, table: str) -> bool:
-        """
-        Check table exists in spark catalog
-
-        :param table: full table path
-        :return: bool
-        """
-        return self.spark.catalog.tableExists(table)
 
     def _write(self, df: DataFrame, info_date: date, table: Table) -> None:
         """
@@ -152,35 +113,6 @@ class Runner:
         df.write.partitionBy(table.partition).mode("overwrite").saveAsTable(table.get_table_path())
         logger.info(f"Results writen to {table.get_table_path()}")
 
-    def _delta_partition(self, table: str) -> str:
-        """
-        Select first partition column, should be only one
-
-        :param table: full table name
-        :return: partition column name
-        """
-        columns = self.spark.catalog.listColumns(table)
-        partition_columns = list(filter(lambda c: c.isPartition, columns))
-        if len(partition_columns):
-            return partition_columns[0].name
-        else:
-            raise RuntimeError(f"Delta table has no partitions: {table}.")
-
-    def _get_partitions(self, table: Table) -> List[date]:
-        """
-        Get partition values
-
-        :param table: Table object
-        :return: List of partition values
-        """
-        rows = (
-            self.reader.get_table(table.get_table_path(), date_column=table.partition)
-            .select(table.partition)
-            .distinct()
-            .collect()
-        )
-        return [r[table.partition] for r in rows]
-
     def check_dates_have_partition(self, table: Table, dates: List[date]) -> List[bool]:
         """
         For given list of dates, check if there is a matching partition for each
@@ -189,8 +121,8 @@ class Runner:
         :param dates: list of dates to check
         :return: list of bool
         """
-        if self._table_exists(table.get_table_path()):
-            partitions = self._get_partitions(table)
+        if utils.table_exists(table.get_table_path()):
+            partitions = utils.get_partitions(self.reader, table)
             return [(date in partitions) for date in dates]
         else:
             logger.info(f"Table {table.get_table_path()} doesn't exist!")
@@ -230,25 +162,6 @@ class Runner:
 
         return True
 
-    def get_possible_run_dates(self, schedule: ScheduleConfig) -> List[date]:
-        """
-        List possible run dates according to parameters and config
-
-        :param schedule: schedule config
-        :return: List of dates
-        """
-        return DateManager.run_dates(self.date_from, self.date_until, schedule)
-
-    def get_info_dates(self, schedule: ScheduleConfig, run_dates: List[date]) -> List[date]:
-        """
-        Transform given dates into info dates according to the config
-
-        :param schedule: schedule config
-        :param run_dates: date list
-        :return: list of modified dates
-        """
-        return [DateManager.to_info_date(x, schedule) for x in run_dates]
-
     def _get_completion(self, target: Table, info_dates: List[date]) -> List[bool]:
         """
         Check if model has run for given dates
@@ -270,8 +183,8 @@ class Runner:
         :param table: table path
         :return: list of run dates and list of info dates
         """
-        possible_run_dates = self.get_possible_run_dates(pipeline.schedule)
-        possible_info_dates = self.get_info_dates(pipeline.schedule, possible_run_dates)
+        possible_run_dates = DateManager.run_dates(self.date_from, self.date_until, pipeline.schedule)
+        possible_info_dates = [DateManager.to_info_date(x, pipeline.schedule) for x in possible_run_dates]
         current_state = self._get_completion(table, possible_info_dates)
 
         selection = [
@@ -300,8 +213,8 @@ class Runner:
         if self.skip_dependencies or self.check_dependencies(pipeline, run_date):
             logger.info(f"Running {pipeline.name} for {run_date}")
 
-            feature_group = self._load_module(pipeline.module)
-            df = self._generate(feature_group, run_date, pipeline)
+            feature_group = utils.load_module(pipeline.module)
+            df = self._execute(feature_group, run_date, pipeline)
             records = df.count()
             if records > 0:
                 self._write(df, info_date, target)
@@ -349,8 +262,8 @@ class Runner:
                     )
                 )
             except Exception as error:
-                print(f"An exception occurred in pipeline {pipeline.name}")
-                print(error)
+                logger.error(f"An exception occurred in pipeline {pipeline.name}")
+                logger.error(error)
                 self.tracker.add(
                     Record(
                         job=pipeline.name,
@@ -364,7 +277,7 @@ class Runner:
                     )
                 )
             except KeyboardInterrupt:
-                print(f"Pipeline {pipeline.name} interrupted")
+                logger.error(f"Pipeline {pipeline.name} interrupted")
                 self.tracker.add(
                     Record(
                         job=pipeline.name,

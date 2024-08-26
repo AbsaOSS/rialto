@@ -12,5 +12,4 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from rialto.loader.data_loader import DatabricksLoader
 from rialto.loader.pyspark_feature_loader import PysparkFeatureLoader

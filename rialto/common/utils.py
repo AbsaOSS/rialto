@@ -38,43 +38,11 @@ def load_yaml(path: str) -> Any:
         return yaml.load(stream, EnvLoader)
 
 
-def get_date_col_property(spark, table: str, property: str) -> str:
-    """
-    Retrieve a data column name from a given table property
-
-    :param spark: spark session
-    :param table: path to table
-    :param property: name of the property
-    :return: data column name
-    """
-    props = spark.sql(f"show tblproperties {table}")
-    date_col = props.filter(F.col("key") == property).select("value").collect()
-    if len(date_col):
-        return date_col[0].value
-    else:
-        raise RuntimeError(f"Table {table} has no property {property}.")
-
-
-def get_delta_partition(spark, table: str) -> str:
-    """
-    Select first partition column of the delta table
-
-    :param table: full table name
-    :return: partition column name
-    """
-    columns = spark.catalog.listColumns(table)
-    partition_columns = list(filter(lambda c: c.isPartition, columns))
-    if len(partition_columns):
-        return partition_columns[0].name
-    else:
-        raise RuntimeError(f"Delta table has no partitions: {table}.")
-
-
 def cast_decimals_to_floats(df: DataFrame) -> DataFrame:
     """
     Find all decimal types in the table and cast them to floats. Fixes errors in .toPandas() conversions.
 
-    :param df: pyspark DataFrame
+    :param df: input df
     :return: pyspark DataFrame with fixed types
     """
     decimal_cols = [col_name for col_name, data_type in df.dtypes if "decimal" in data_type]

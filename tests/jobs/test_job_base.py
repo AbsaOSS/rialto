@@ -20,7 +20,7 @@ import pyspark.sql.types
 
 import tests.jobs.resources as resources
 from rialto.jobs.decorators.resolver import Resolver
-from rialto.loader import DatabricksLoader, PysparkFeatureLoader
+from rialto.loader import PysparkFeatureLoader
 
 
 def test_setup_except_feature_loader(spark):
@@ -39,7 +39,7 @@ def test_setup_except_feature_loader(spark):
 def test_setup_feature_loader(spark):
     table_reader = MagicMock()
     date = datetime.date(2023, 1, 1)
-    feature_loader = PysparkFeatureLoader(spark, DatabricksLoader(spark, "", ""), "")
+    feature_loader = PysparkFeatureLoader(spark, "", "", "")
 
     resources.CustomJobNoReturnVal().run(
         reader=table_reader, run_date=date, spark=spark, config=None, feature_loader=feature_loader

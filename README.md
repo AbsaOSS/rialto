@@ -423,19 +423,6 @@ This module is used to load features from feature store into your models and scr
 
 Two public classes are exposed form this module. **DatabricksLoader**(DataLoader), **PysparkFeatureLoader**(FeatureLoaderInterface).
 
-### DatabricksLoader
-This is a support class for feature loader and provides the data reading capability from the feature store.
-
-This class needs to be instantiated with an active spark session and a path to the feature store schema (in the format of "catalog_name.schema_name").
-Optionally a date_column information can be passed, otherwise it defaults to use INFORMATION_DATE
-```python
-from rialto.loader import DatabricksLoader
-
-data_loader = DatabricksLoader(spark= spark_instance, schema= "catalog.schema", date_column= "INFORMATION_DATE")
-```
-
-This class provides one method, read_group(...), which returns a whole feature group for selected date. This is mostly used inside feature loader.
-
 ### PysparkFeatureLoader
 
 This class needs to be instantiated with an active spark session, data loader and a path to the metadata schema (in the format of "catalog_name.schema_name").
@@ -443,17 +430,16 @@ This class needs to be instantiated with an active spark session, data loader an
 ```python
 from rialto.loader import PysparkFeatureLoader
 
-feature_loader = PysparkFeatureLoader(spark= spark_instance, data_loader= data_loader_instance, metadata_schema= "catalog.schema")
+feature_loader = PysparkFeatureLoader(spark= spark_instance, feature_schema="catalog.schema", metadata_schema= "catalog.schema2", date_column="information_date")
 ```
 
 #### Single feature
 
 ```python
-from rialto.loader import DatabricksLoader, PysparkFeatureLoader
+from rialto.loader import PysparkFeatureLoader
 from datetime import datetime
 
-data_loader = DatabricksLoader(spark, "feature_catalog.feature_schema")
-feature_loader = PysparkFeatureLoader(spark, data_loader, "metadata_catalog.metadata_schema")
+feature_loader = PysparkFeatureLoader(spark, "feature_catalog.feature_schema", "metadata_catalog.metadata_schema")
 my_date = datetime.strptime("2020-01-01", "%Y-%m-%d").date()
 
 feature = feature_loader.get_feature(group_name="CustomerFeatures", feature_name="AGE", information_date=my_date)
@@ -464,11 +450,10 @@ metadata = feature_loader.get_feature_metadata(group_name="CustomerFeatures", fe
 This method of data access is only recommended for experimentation, as the group schema can evolve over time.
 
 ```python
-from rialto.loader import DatabricksLoader, PysparkFeatureLoader
+from rialto.loader import PysparkFeatureLoader
 from datetime import datetime
 
-data_loader = DatabricksLoader(spark, "feature_catalog.feature_schema")
-feature_loader = PysparkFeatureLoader(spark, data_loader, "metadata_catalog.metadata_schema")
+feature_loader = PysparkFeatureLoader(spark, "feature_catalog.feature_schema", "metadata_catalog.metadata_schema")
 my_date = datetime.strptime("2020-01-01", "%Y-%m-%d").date()
 
 features = feature_loader.get_group(group_name="CustomerFeatures", information_date=my_date)
@@ -478,11 +463,10 @@ metadata = feature_loader.get_group_metadata(group_name="CustomerFeatures")
 #### Configuration
 
 ```python
-from rialto.loader import DatabricksLoader, PysparkFeatureLoader
+from rialto.loader import PysparkFeatureLoader
 from datetime import datetime
 
-data_loader = DatabricksLoader(spark, "feature_catalog.feature_schema")
-feature_loader = PysparkFeatureLoader(spark, data_loader, "metadata_catalog.metadata_schema")
+feature_loader = PysparkFeatureLoader(spark, "feature_catalog.feature_schema", "metadata_catalog.metadata_schema")
 my_date = datetime.strptime("2020-01-01", "%Y-%m-%d").date()
 
 features = feature_loader.get_features_from_cfg(path="local/configuration/file.yaml", information_date=my_date)
