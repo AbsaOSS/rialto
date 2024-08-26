@@ -188,7 +188,7 @@ def test_check_dates_have_partition_no_table(spark, mocker):
     [("2023-02-26", False), ("2023-03-05", True)],
 )
 def test_check_dependencies(spark, mocker, r_date, expected):
-    mocker.patch("rialto.runner.runner.Runner._table_exists", return_value=True)
+    mocker.patch("rialto.runner.runner.utils.table_exists", return_value=True)
 
     runner = Runner(
         spark,
