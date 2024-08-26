@@ -17,6 +17,7 @@ from typing import Optional
 import pytest
 from pyspark.sql import DataFrame
 
+import rialto.runner.utils as utils
 from rialto.common.table_reader import DataReader
 from rialto.runner.runner import DateManager, Runner
 from rialto.runner.table import Table
@@ -58,14 +59,14 @@ class MockReader(DataReader):
         pass
 
 
-def test_table_exists(spark, mocker, basic_runner):
+def test_table_exists(spark, mocker):
     mock = mocker.patch("pyspark.sql.Catalog.tableExists", return_value=True)
-    basic_runner.table_exists("abc")
+    utils.table_exists(spark, "abc")
     mock.assert_called_once_with("abc")
 
 
 def test_load_module(spark, basic_runner):
-    module = basic_runner._load_module(basic_runner.config.pipelines[0].module)
+    module = utils.load_module(basic_runner.config.pipelines[0].module)
     assert isinstance(module, SimpleGroup)
 
 
@@ -123,7 +124,7 @@ def test_init_dates(spark):
 
 
 def test_completion(spark, mocker, basic_runner):
-    mocker.patch("rialto.runner.runner.Runner._table_exists", return_value=True)
+    mocker.patch("rialto.runner.utils.table_exists", return_value=True)
 
     basic_runner.reader = MockReader(spark)
 
@@ -136,7 +137,7 @@ def test_completion(spark, mocker, basic_runner):
 
 
 def test_completion_rerun(spark, mocker, basic_runner):
-    mocker.patch("rialto.runner.runner.Runner._table_exists", return_value=True)
+    mocker.patch("rialto.runner.runner.utils.table_exists", return_value=True)
 
     runner = Runner(spark, config_path="tests/runner/transformations/config.yaml", run_date="2023-03-31")
     runner.reader = MockReader(spark)
@@ -150,7 +151,7 @@ def test_completion_rerun(spark, mocker, basic_runner):
 
 
 def test_check_dates_have_partition(spark, mocker):
-    mocker.patch("rialto.runner.runner.Runner._table_exists", return_value=True)
+    mocker.patch("rialto.runner.runner.utils.table_exists", return_value=True)
 
     runner = Runner(
         spark,
@@ -167,7 +168,7 @@ def test_check_dates_have_partition(spark, mocker):
 
 
 def test_check_dates_have_partition_no_table(spark, mocker):
-    mocker.patch("rialto.runner.runner.Runner._table_exists", return_value=False)
+    mocker.patch("rialto.runner.runner.utils.table_exists", return_value=False)
 
     runner = Runner(
         spark,
@@ -201,7 +202,7 @@ def test_check_dependencies(spark, mocker, r_date, expected):
 
 
 def test_check_no_dependencies(spark, mocker):
-    mocker.patch("rialto.runner.runner.Runner._table_exists", return_value=True)
+    mocker.patch("rialto.runner.runner.utils.table_exists", return_value=True)
 
     runner = Runner(
         spark,
@@ -215,7 +216,7 @@ def test_check_no_dependencies(spark, mocker):
 
 
 def test_select_dates(spark, mocker):
-    mocker.patch("rialto.runner.runner.Runner._table_exists", return_value=True)
+    mocker.patch("rialto.runner.runner.utils.table_exists", return_value=True)
 
     runner = Runner(
         spark,
@@ -237,7 +238,7 @@ def test_select_dates(spark, mocker):
 
 
 def test_select_dates_all_done(spark, mocker):
-    mocker.patch("rialto.runner.runner.Runner._table_exists", return_value=True)
+    mocker.patch("rialto.runner.runner.utils.table_exists", return_value=True)
 
     runner = Runner(
         spark,
