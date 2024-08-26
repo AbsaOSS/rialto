@@ -121,7 +121,7 @@ class Runner:
         :param dates: list of dates to check
         :return: list of bool
         """
-        if utils.table_exists(table.get_table_path()):
+        if utils.table_exists(self.spark, table.get_table_path()):
             partitions = utils.get_partitions(self.reader, table)
             return [(date in partitions) for date in dates]
         else:
