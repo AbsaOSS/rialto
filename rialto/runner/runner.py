@@ -16,7 +16,7 @@ __all__ = ["Runner"]
 
 import datetime
 from datetime import date
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import pyspark.sql.functions as F
 from loguru import logger
@@ -44,9 +44,10 @@ class Runner:
         rerun: bool = False,
         op: str = None,
         skip_dependencies: bool = False,
+        overrides: Dict = None,
     ):
         self.spark = spark
-        self.config = get_pipelines_config(config_path)
+        self.config = get_pipelines_config(config_path, overrides)
         self.reader = TableReader(spark)
 
         self.date_from = date_from

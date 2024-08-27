@@ -21,6 +21,7 @@ from typing import Dict, List, Optional, Union
 from pydantic import BaseModel
 
 from rialto.common.utils import load_yaml
+from rialto.runner.config_overrides import override_config
 
 
 class IntervalConfig(BaseModel):
@@ -91,6 +92,11 @@ class PipelinesConfig(BaseModel):
     pipelines: list[PipelineConfig]
 
 
-def get_pipelines_config(path) -> PipelinesConfig:
+def get_pipelines_config(path: str, overrides: Dict) -> PipelinesConfig:
     """Load and parse yaml config"""
-    return PipelinesConfig(**load_yaml(path))
+    raw_config = load_yaml(path)
+    if overrides:
+        cfg = override_config(raw_config, overrides)
+        return PipelinesConfig(**cfg)
+    else:
+        return PipelinesConfig(**raw_config)
