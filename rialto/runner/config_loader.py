@@ -32,7 +32,7 @@ class IntervalConfig(BaseModel):
 class ScheduleConfig(BaseModel):
     frequency: str
     day: Optional[int] = 0
-    info_date_shift: List[IntervalConfig] = IntervalConfig(units="days", value=0)
+    info_date_shift: Optional[List[IntervalConfig]] = IntervalConfig(units="days", value=0)
 
 
 class DependencyConfig(BaseModel):

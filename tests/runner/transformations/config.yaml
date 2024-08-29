@@ -55,8 +55,8 @@ pipelines:
       frequency: weekly
       day: 7
       info_date_shift:
-        value: 3
-        units: days
+        - value: 3
+          units: days
   - name: NamedDeps
     module:
      python_module: tests.runner.transformations
