@@ -10,8 +10,10 @@ All notable changes to this project will be documented in this file.
      - dependency date_col is now mandatory
      - custom extras config is available in each pipeline and will be passed as dictionary available under pipeline_config.extras
      - general section is renamed to runner
+     - info_date_shift is always a list
    - transformation header changed
    - added argument to skip dependency checking
+   - added overrides parameter to allow for dynamic overriding of config values
    #### Jobs
    - jobs are now the main way to create all pipelines
    - config holder removed from jobs

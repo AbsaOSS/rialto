@@ -53,11 +53,11 @@ def _override(config, path, value) -> Dict:
         else:
             raise IndexError(f"Index {index} out of bounds for key {key}")
     else:
-        if key not in config:
-            raise ValueError(f"Invalid key {key}")
         if len(path) == 1:
             config[key] = value
         else:
+            if key not in config:
+                raise ValueError(f"Invalid key {key}")
             config[key] = _override(config[key], path[1:], value)
     return config
 

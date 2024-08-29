@@ -16,7 +16,7 @@ __all__ = [
     "get_pipelines_config",
 ]
 
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -32,7 +32,7 @@ class IntervalConfig(BaseModel):
 class ScheduleConfig(BaseModel):
     frequency: str
     day: Optional[int] = 0
-    info_date_shift: Union[Optional[IntervalConfig], List[IntervalConfig]] = IntervalConfig(units="days", value=0)
+    info_date_shift: List[IntervalConfig] = IntervalConfig(units="days", value=0)
 
 
 class DependencyConfig(BaseModel):

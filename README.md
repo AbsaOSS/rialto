@@ -59,6 +59,7 @@ This behavior can be modified by various parameters and switches available.
 * **rerun** - rerun all jobs even if they already succeeded in the past runs
 * **op** - run only selected operation / pipeline
 * **skip_dependencies** - ignore dependency checks and run all jobs
+* **overrides** - dictionary of overrides for the configuration
 
 
 Transformations are not included in the runner itself, it imports them dynamically according to the configuration, therefore it's necessary to have them locally installed.
@@ -132,6 +133,62 @@ pipelines: # a list of pipelines to run
         value: 6
 ```
 
+The configuration can be dynamically overridden by providing a dictionary of overrides to the runner. All overrides must adhere to configurations schema, with pipeline.extras section available for custom schema.
+Here are few examples of overrides:
+
+#### Simple override of a single value
+Specify the path to the value in the configuration file as a dot-separated string
+
+```python
+Runner(
+        spark,
+        config_path="tests/overrider.yaml",
+        run_date="2023-03-31",
+        overrides={"runner.watch_period_value": 4},
+    )
+```
+
+#### Override list element
+You can refer to list elements by their index (starting with 0)
+```python
+overrides={"runner.mail.to[1]": "a@b.c"}
+```
+
+#### Append to list
+You can append to list by using index -1
+```python
+overrides={"runner.mail.to[-1]": "test@test.com"}
+```
+
+#### Lookup by attribute value in a list
+You can use the following syntax to find a specific element in a list by its attribute value
+```python
+overrides={"pipelines[name=SimpleGroup].target.target_schema": "new_schema"},
+```
+
+#### Injecting/Replacing whole sections
+You can directly replace a bigger section of the configuration by providing a dictionary
+When the whole section doesn't exist, it will be added to the configuration, however it needs to be added as a whole.
+i.e. if the yaml file doesn't specify feature_loader, you can't just add a feature_loader.config_path, you need to add the whole section.
+```python
+overrides={"pipelines[name=SimpleGroup].feature_loader":
+                           {"config_path": "features_cfg.yaml",
+                            "feature_schema": "catalog.features",
+                            "metadata_schema": "catalog.metadata"}}
+```
+
+#### Multiple overrides
+You can provide multiple overrides at once, the order of execution is not guaranteed
+```python
+overrides={"runner.watch_period_value": 4,
+           "runner.watch_period_units": "weeks",
+           "pipelines[name=SimpleGroup].target.target_schema": "new_schema",
+           "pipelines[name=SimpleGroup].feature_loader":
+                           {"config_path": "features_cfg.yaml",
+                            "feature_schema": "catalog.features",
+                            "metadata_schema": "catalog.metadata"}
+           }
+```
 
 
 ## <a id="maker"></a> 2.2 - maker

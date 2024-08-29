@@ -100,6 +100,38 @@ def test_invalid_key(spark):
             spark,
             config_path="tests/runner/overrider.yaml",
             run_date="2023-03-31",
-            overrides={"runner.mail.test": "test"},
+            overrides={"runner.mail.test.param": "test"},
         )
     assert error.value.args[0] == "Invalid key test"
+
+
+def test_replace_section(spark):
+    runner = Runner(
+        spark,
+        config_path="tests/runner/overrider.yaml",
+        run_date="2023-03-31",
+        overrides={
+            "pipelines[name=SimpleGroup].feature_loader": {
+                "config_path": "features_cfg.yaml",
+                "feature_schema": "catalog.features",
+                "metadata_schema": "catalog.metadata",
+            }
+        },
+    )
+    assert runner.config.pipelines[0].feature_loader.feature_schema == "catalog.features"
+
+
+def test_add_section(spark):
+    runner = Runner(
+        spark,
+        config_path="tests/runner/overrider.yaml",
+        run_date="2023-03-31",
+        overrides={
+            "pipelines[name=OtherGroup].feature_loader": {
+                "config_path": "features_cfg.yaml",
+                "feature_schema": "catalog.features",
+                "metadata_schema": "catalog.metadata",
+            }
+        },
+    )
+    assert runner.config.pipelines[1].feature_loader.feature_schema == "catalog.features"

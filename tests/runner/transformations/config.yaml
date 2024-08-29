@@ -31,8 +31,8 @@ pipelines:
       frequency: weekly
       day: 7
       info_date_shift:
-        value: 3
-        units: days
+        - value: 3
+          units: days
     dependencies:
       - table: source.schema.dep1
         interval:
@@ -65,8 +65,8 @@ pipelines:
      frequency: weekly
      day: 7
      info_date_shift:
-       value: 3
-       units: days
+       - value: 3
+         units: days
     dependencies:
      - table: source.schema.dep1
        name: source1
