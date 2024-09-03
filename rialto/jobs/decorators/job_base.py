@@ -24,11 +24,11 @@ from loguru import logger
 from pyspark.sql import DataFrame, SparkSession
 
 from rialto.common import TableReader
-from rialto.jobs.configuration.config_holder import ConfigHolder
 from rialto.jobs.decorators.resolver import Resolver
-from rialto.loader import DatabricksLoader, PysparkFeatureLoader
+from rialto.loader import PysparkFeatureLoader
 from rialto.metadata import MetadataManager
 from rialto.runner import Transformation
+from rialto.runner.config_loader import PipelineConfig
 
 
 class JobBase(Transformation):
@@ -53,12 +53,14 @@ class JobBase(Transformation):
     def _setup_resolver(self, run_date: datetime.date) -> None:
         Resolver.register_callable(lambda: run_date, "run_date")
 
-        Resolver.register_callable(ConfigHolder.get_config, "config")
-        Resolver.register_callable(ConfigHolder.get_dependency_config, "dependencies")
-
         Resolver.register_callable(self._get_spark, "spark")
         Resolver.register_callable(self._get_table_reader, "table_reader")
-        Resolver.register_callable(self._get_feature_loader, "feature_loader")
+        Resolver.register_callable(self._get_config, "config")
+
+        if self._get_feature_loader() is not None:
+            Resolver.register_callable(self._get_feature_loader, "feature_loader")
+        if self._get_metadata_manager() is not None:
+            Resolver.register_callable(self._get_metadata_manager, "metadata_manager")
 
         try:
             yield
@@ -66,13 +68,18 @@ class JobBase(Transformation):
             Resolver.cache_clear()
 
     def _setup(
-        self, spark: SparkSession, run_date: datetime.date, table_reader: TableReader, dependencies: typing.Dict = None
+        self,
+        spark: SparkSession,
+        table_reader: TableReader,
+        config: PipelineConfig = None,
+        metadata_manager: MetadataManager = None,
+        feature_loader: PysparkFeatureLoader = None,
     ) -> None:
         self._spark = spark
         self._table_rader = table_reader
-
-        ConfigHolder.set_dependency_config(dependencies)
-        ConfigHolder.set_run_date(run_date)
+        self._config = config
+        self._metadata = metadata_manager
+        self._feature_loader = feature_loader
 
     def _get_spark(self) -> SparkSession:
         return self._spark
@@ -80,13 +87,14 @@ class JobBase(Transformation):
     def _get_table_reader(self) -> TableReader:
         return self._table_rader
 
+    def _get_config(self) -> PipelineConfig:
+        return self._config
+
     def _get_feature_loader(self) -> PysparkFeatureLoader:
-        config = ConfigHolder.get_feature_store_config()
+        return self._feature_loader
 
-        databricks_loader = DatabricksLoader(self._spark, config.feature_store_schema)
-        feature_loader = PysparkFeatureLoader(self._spark, databricks_loader, config.feature_metadata_schema)
-
-        return feature_loader
+    def _get_metadata_manager(self) -> MetadataManager:
+        return self._metadata
 
     def _get_timestamp_holder_result(self) -> DataFrame:
         spark = self._get_spark()
@@ -118,8 +126,9 @@ class JobBase(Transformation):
         reader: TableReader,
         run_date: datetime.date,
         spark: SparkSession = None,
+        config: PipelineConfig = None,
         metadata_manager: MetadataManager = None,
-        dependencies: typing.Dict = None,
+        feature_loader: PysparkFeatureLoader = None,
     ) -> DataFrame:
         """
         Rialto transformation run
@@ -127,12 +136,11 @@ class JobBase(Transformation):
         :param reader: data store api object
         :param info_date: date
         :param spark: spark session
-        :param metadata_manager: metadata api object
-        :param dependencies: rialto job dependencies
+        :param config: pipeline config
         :return: dataframe
         """
         try:
-            self._setup(spark, run_date, reader, dependencies)
+            self._setup(spark, reader, config, metadata_manager, feature_loader)
             return self._run_main_callable(run_date)
         except Exception as e:
             logger.exception(e)

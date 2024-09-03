@@ -41,8 +41,7 @@ class Record:
 class Tracker:
     """Collect information about runs and sent them out via email"""
 
-    def __init__(self, target_schema: str):
-        self.target_schema = target_schema
+    def __init__(self):
         self.records = []
         self.last_error = None
         self.pipeline_start = datetime.now()
@@ -55,7 +54,7 @@ class Tracker:
     def report(self, mail_cfg: MailConfig):
         """Create and send html report"""
         if len(self.records) or mail_cfg.sent_empty:
-            report = HTMLMessage.make_report(self.target_schema, self.pipeline_start, self.records)
+            report = HTMLMessage.make_report(self.pipeline_start, self.records)
             for receiver in mail_cfg.to:
                 message = Mailer.create_message(
                     subject=mail_cfg.subject, sender=mail_cfg.sender, receiver=receiver, body=report
@@ -118,7 +117,7 @@ class HTMLMessage:
         """
 
     @staticmethod
-    def _make_header(target: str, start: datetime):
+    def _make_header(start: datetime):
         return f"""
             <div align="center">
                 <table {HTMLMessage.borderless_table}>
@@ -127,7 +126,7 @@ class HTMLMessage:
                     </tr>
                     <tr>
                         <td align="center">
-                            Jobs started <b>{str(start).split('.')[0]}</b>, targeting <b>{target}</b>
+                            Jobs started <b>{str(start).split('.')[0]}</b>
                         </td>
                     </tr>
                 </table>
@@ -228,14 +227,14 @@ class HTMLMessage:
         """
 
     @staticmethod
-    def make_report(target: str, start: datetime, records: List[Record]) -> str:
+    def make_report(start: datetime, records: List[Record]) -> str:
         """Create html email report"""
         html = [
             """<!DOCTYPE html>
             <html lang="en" xmlns="https://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">""",
             HTMLMessage._head(),
             HTMLMessage._body_open(),
-            HTMLMessage._make_header(target, start),
+            HTMLMessage._make_header(start),
             HTMLMessage._make_overview(records),
             HTMLMessage._make_insights(records),
             HTMLMessage._body_close(),

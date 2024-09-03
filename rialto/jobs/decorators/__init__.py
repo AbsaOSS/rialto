@@ -12,4 +12,4 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from .decorators import datasource, job
+from .decorators import config, datasource, job

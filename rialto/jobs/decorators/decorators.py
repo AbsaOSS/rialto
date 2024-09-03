@@ -12,7 +12,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-__all__ = ["datasource", "job"]
+__all__ = ["datasource", "job", "config"]
 
 import inspect
 import typing
@@ -22,6 +22,20 @@ from loguru import logger
 
 from rialto.jobs.decorators.job_base import JobBase
 from rialto.jobs.decorators.resolver import Resolver
+
+
+def config(ds_getter: typing.Callable) -> typing.Callable:
+    """
+    Config parser functions decorator.
+
+    Registers a config parsing function into a rialto job prerequisite.
+    You can then request the job via job function arguments.
+
+    :param ds_getter:  dataset reader function
+    :return: raw reader function, unchanged
+    """
+    Resolver.register_callable(ds_getter)
+    return ds_getter
 
 
 def datasource(ds_getter: typing.Callable) -> typing.Callable:
@@ -77,14 +91,14 @@ def job(*args, custom_name=None, disable_version=False):
     """
     Rialto jobs decorator.
 
-    Transforms a python function into a rialto transormation, which can be imported and ran by Rialto Runner.
+    Transforms a python function into a rialto transformation, which can be imported and ran by Rialto Runner.
     Is mainly used as @job and the function's name is used, and the outputs get automatic.
     To override this behavior, use @job(custom_name=XXX, disable_version=True).
 
 
     :param *args:  list of positional arguments. Empty in case custom_name or disable_version is specified.
     :param custom_name:  str for custom job name.
-    :param disable_version:  bool for disabling autofilling the VERSION column in the job's outputs.
+    :param disable_version:  bool for disabling automatically filling the VERSION column in the job's outputs.
     :return: One more job wrapper for run function (if custom name or version override specified).
              Otherwise, generates Rialto Transformation Type and returns it for in-module registration.
     """
@@ -93,7 +107,7 @@ def job(*args, custom_name=None, disable_version=False):
     module = _get_module(stack)
     version = _get_version(module)
 
-    # Use case where it's just raw @f. Otherwise we get [] here.
+    # Use case where it's just raw @f. Otherwise, we get [] here.
     if len(args) == 1 and callable(args[0]):
         f = args[0]
         return _generate_rialto_job(callable=f, module=module, class_name=f.__name__, version=version)

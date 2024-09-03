@@ -30,7 +30,7 @@ class Resolver:
     Resolver handles dependency management between datasets and jobs.
 
     We register different callables, which can depend on other callables.
-    Calling resolve() we attempts to resolve these dependencies.
+    Calling resolve() we attempt to resolve these dependencies.
     """
 
     _storage = {}
@@ -101,7 +101,7 @@ class Resolver:
         """
         Clear resolver cache.
 
-        The resolve mehtod caches its results to avoid duplication of resolutions.
+        The resolve method caches its results to avoid duplication of resolutions.
         However, in case we re-register some callables, we need to clear cache
         in order to ensure re-execution of all resolutions.
 
