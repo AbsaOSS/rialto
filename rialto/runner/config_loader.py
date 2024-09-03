@@ -71,7 +71,6 @@ class MetadataManagerConfig(BaseModel):
 
 
 class FeatureLoaderConfig(BaseModel):
-    config_path: str
     feature_schema: str
     metadata_schema: str
 
@@ -81,7 +80,7 @@ class PipelineConfig(BaseModel):
     module: ModuleConfig
     schedule: ScheduleConfig
     dependencies: Optional[List[DependencyConfig]] = []
-    target: Optional[TargetConfig] = None
+    target: TargetConfig = None
     metadata_manager: Optional[MetadataManagerConfig] = None
     feature_loader: Optional[FeatureLoaderConfig] = None
     extras: Optional[Dict] = {}

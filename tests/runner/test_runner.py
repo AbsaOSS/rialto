@@ -108,10 +108,10 @@ def test_init_dates(spark):
     runner = Runner(
         spark,
         config_path="tests/runner/transformations/config.yaml",
-        date_from="2023-03-01",
-        date_until="2023-03-31",
+        run_date="2023-03-31",
+        overrides={"runner.watched_period_units": "weeks", "runner.watched_period_value": 2},
     )
-    assert runner.date_from == DateManager.str_to_date("2023-03-01")
+    assert runner.date_from == DateManager.str_to_date("2023-03-17")
     assert runner.date_until == DateManager.str_to_date("2023-03-31")
 
     runner = Runner(
@@ -156,8 +156,7 @@ def test_check_dates_have_partition(spark, mocker):
     runner = Runner(
         spark,
         config_path="tests/runner/transformations/config.yaml",
-        date_from="2023-03-01",
-        date_until="2023-03-31",
+        run_date="2023-03-31",
     )
     runner.reader = MockReader(spark)
     dates = ["2023-03-04", "2023-03-05", "2023-03-06"]
@@ -173,8 +172,7 @@ def test_check_dates_have_partition_no_table(spark, mocker):
     runner = Runner(
         spark,
         config_path="tests/runner/transformations/config.yaml",
-        date_from="2023-03-01",
-        date_until="2023-03-31",
+        run_date="2023-03-31",
     )
     dates = ["2023-03-04", "2023-03-05", "2023-03-06"]
     dates = [DateManager.str_to_date(d) for d in dates]
@@ -193,8 +191,7 @@ def test_check_dependencies(spark, mocker, r_date, expected):
     runner = Runner(
         spark,
         config_path="tests/runner/transformations/config.yaml",
-        date_from="2023-03-01",
-        date_until="2023-03-31",
+        run_date="2023-03-31",
     )
     runner.reader = MockReader(spark)
     res = runner.check_dependencies(runner.config.pipelines[0], DateManager.str_to_date(r_date))
@@ -207,8 +204,7 @@ def test_check_no_dependencies(spark, mocker):
     runner = Runner(
         spark,
         config_path="tests/runner/transformations/config.yaml",
-        date_from="2023-03-01",
-        date_until="2023-03-31",
+        run_date="2023-03-31",
     )
     runner.reader = MockReader(spark)
     res = runner.check_dependencies(runner.config.pipelines[1], DateManager.str_to_date("2023-03-05"))
@@ -221,8 +217,8 @@ def test_select_dates(spark, mocker):
     runner = Runner(
         spark,
         config_path="tests/runner/transformations/config.yaml",
-        date_from="2023-03-01",
-        date_until="2023-03-31",
+        run_date="2023-03-31",
+        overrides={"runner.watched_period_units": "months", "runner.watched_period_value": 1},
     )
     runner.reader = MockReader(spark)
 
@@ -243,8 +239,8 @@ def test_select_dates_all_done(spark, mocker):
     runner = Runner(
         spark,
         config_path="tests/runner/transformations/config.yaml",
-        date_from="2023-03-02",
-        date_until="2023-03-02",
+        run_date="2023-03-02",
+        overrides={"runner.watched_period_units": "months", "runner.watched_period_value": 0},
     )
     runner.reader = MockReader(spark)
 

@@ -39,8 +39,6 @@ class Runner:
         spark: SparkSession,
         config_path: str,
         run_date: str = None,
-        date_from: str = None,
-        date_until: str = None,
         rerun: bool = False,
         op: str = None,
         skip_dependencies: bool = False,
@@ -49,9 +47,6 @@ class Runner:
         self.spark = spark
         self.config = get_pipelines_config(config_path, overrides)
         self.reader = TableReader(spark)
-
-        self.date_from = date_from
-        self.date_until = date_until
         self.rerun = rerun
         self.skip_dependencies = skip_dependencies
         self.op = op
@@ -61,19 +56,15 @@ class Runner:
             run_date = DateManager.str_to_date(run_date)
         else:
             run_date = date.today()
-        if self.date_from:
-            self.date_from = DateManager.str_to_date(date_from)
-        if self.date_until:
-            self.date_until = DateManager.str_to_date(date_until)
 
-        if not self.date_from:
-            self.date_from = DateManager.date_subtract(
-                run_date=run_date,
-                units=self.config.runner.watched_period_units,
-                value=self.config.runner.watched_period_value,
-            )
-        if not self.date_until:
-            self.date_until = run_date
+        self.date_from = DateManager.date_subtract(
+            run_date=run_date,
+            units=self.config.runner.watched_period_units,
+            value=self.config.runner.watched_period_value,
+        )
+
+        self.date_until = run_date
+
         if self.date_from > self.date_until:
             raise ValueError(f"Invalid date range from {self.date_from} until {self.date_until}")
         logger.info(f"Running period from {self.date_from} until {self.date_until}")

@@ -25,6 +25,13 @@ def test_dataset_decorator():
     assert test_dataset == "dataset_return"
 
 
+def test_config_decorator():
+    _ = import_module("tests.jobs.test_job.test_job")
+    test_dataset = Resolver.resolve("custom_config")
+
+    assert test_dataset == "config_return"
+
+
 def _rialto_import_stub(module_name, class_name):
     module = import_module(module_name)
     class_obj = getattr(module, class_name)

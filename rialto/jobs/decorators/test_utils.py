@@ -17,9 +17,10 @@ __all__ = ["disable_job_decorators"]
 import importlib
 import typing
 from contextlib import contextmanager
-from unittest.mock import patch, create_autospec, MagicMock
-from rialto.jobs.decorators.resolver import Resolver, ResolverException
+from unittest.mock import MagicMock, create_autospec, patch
+
 from rialto.jobs.decorators.job_base import JobBase
+from rialto.jobs.decorators.resolver import Resolver, ResolverException
 
 
 def _passthrough_decorator(*args, **kwargs) -> typing.Callable:
@@ -34,6 +35,8 @@ def _disable_job_decorators() -> None:
     patches = [
         patch("rialto.jobs.decorators.datasource", _passthrough_decorator),
         patch("rialto.jobs.decorators.decorators.datasource", _passthrough_decorator),
+        patch("rialto.jobs.decorators.config", _passthrough_decorator),
+        patch("rialto.jobs.decorators.decorators.config", _passthrough_decorator),
         patch("rialto.jobs.decorators.job", _passthrough_decorator),
         patch("rialto.jobs.decorators.decorators.job", _passthrough_decorator),
     ]

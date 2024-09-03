@@ -12,7 +12,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-__all__ = ["datasource", "job"]
+__all__ = ["datasource", "job", "config"]
 
 import inspect
 import typing
@@ -22,6 +22,20 @@ from loguru import logger
 
 from rialto.jobs.decorators.job_base import JobBase
 from rialto.jobs.decorators.resolver import Resolver
+
+
+def config(ds_getter: typing.Callable) -> typing.Callable:
+    """
+    Config parser functions decorator.
+
+    Registers a config parsing function into a rialto job prerequisite.
+    You can then request the job via job function arguments.
+
+    :param ds_getter:  dataset reader function
+    :return: raw reader function, unchanged
+    """
+    Resolver.register_callable(ds_getter)
+    return ds_getter
 
 
 def datasource(ds_getter: typing.Callable) -> typing.Callable:

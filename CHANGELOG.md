@@ -14,10 +14,12 @@ All notable changes to this project will be documented in this file.
    - transformation header changed
    - added argument to skip dependency checking
    - added overrides parameter to allow for dynamic overriding of config values
+   - removed date_from and date_to from arguments, use overrides instead
    #### Jobs
    - jobs are now the main way to create all pipelines
    - config holder removed from jobs
    - metadata_manager and feature_loader are now available arguments, depending on configuration
+   - added @config decorator, similar use case to @datasource, for parsing configuration
    #### TableReader
    - function signatures changed
      - until -> date_until

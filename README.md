@@ -1,4 +1,4 @@
-
+from pydantic import BaseModelfrom rialto.runner.config_loader import PipelineConfigfrom rialto.jobs import config
 
 # Rialto
 
@@ -54,8 +54,6 @@ A runner by default executes all the jobs provided in the configuration file, fo
 This behavior can be modified by various parameters and switches available.
 
 * **run_date** - date at which the runner is triggered (defaults to day of running)
-* **date_from** - starting date (defaults to rundate - config watch period)
-* **date_until** - end date (defaults to rundate)
 * **rerun** - rerun all jobs even if they already succeeded in the past runs
 * **op** - run only selected operation / pipeline
 * **skip_dependencies** - ignore dependency checks and run all jobs
@@ -131,6 +129,9 @@ pipelines: # a list of pipelines to run
       interval:
         units: "days"
         value: 6
+  target:
+      target_schema: catalog.schema # schema where tables will be created, must exist
+      target_partition_column: INFORMATION_DATE # date to partition new tables on
 ```
 
 The configuration can be dynamically overridden by providing a dictionary of overrides to the runner. All overrides must adhere to configurations schema, with pipeline.extras section available for custom schema.
@@ -371,8 +372,18 @@ With that sorted out, we can now provide a quick example of the *rialto.jobs* mo
 ```python
 from pyspark.sql import DataFrame
 from rialto.common import TableReader
-from rialto.jobs.decorators import job, datasource
+from rialto.jobs.decorators import config, job, datasource
+from rialto.runner.config_loader import PipelineConfig
+from pydantic import BaseModel
 
+
+class ConfigModel(BaseModel):
+    some_value: int
+    some_other_value: str
+
+@config
+def my_config(config: PipelineConfig):
+    return ConfigModel(**config.extras)
 
 @datasource
 def my_datasource(run_date: datetime.date, table_reader: TableReader) -> DataFrame:
@@ -380,8 +391,8 @@ def my_datasource(run_date: datetime.date, table_reader: TableReader) -> DataFra
 
 
 @job
-def my_job(my_datasource: DataFrame) -> DataFrame:
-    return my_datasource.withColumn("HelloWorld", F.lit(1))
+def my_job(my_datasource: DataFrame, my_config: ConfigModel) -> DataFrame:
+    return my_datasource.withColumn("HelloWorld", F.lit(my_config.some_value))
 ```
 This piece of code
 1. creates a rialto transformation called *my_job*, which is then callable by the rialto runner.
