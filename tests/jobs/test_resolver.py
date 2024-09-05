@@ -13,7 +13,7 @@
 #  limitations under the License.
 import pytest
 
-from rialto.jobs.decorators.resolver import Resolver, ResolverException
+from rialto.jobs.resolver import Resolver, ResolverException
 
 
 def test_simple_resolve_custom_name():
@@ -56,8 +56,8 @@ def test_register_resolve(mocker):
     def f():
         return 7
 
-    mocker.patch("rialto.jobs.decorators.resolver.Resolver.register_callable", return_value="f")
-    mocker.patch("rialto.jobs.decorators.resolver.Resolver.resolve")
+    mocker.patch("rialto.jobs.resolver.Resolver.register_callable", return_value="f")
+    mocker.patch("rialto.jobs.resolver.Resolver.resolve")
 
     Resolver.register_resolve(f)
 

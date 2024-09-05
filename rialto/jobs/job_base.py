@@ -24,7 +24,7 @@ from loguru import logger
 from pyspark.sql import DataFrame, SparkSession
 
 from rialto.common import TableReader
-from rialto.jobs.decorators.resolver import Resolver
+from rialto.jobs.resolver import Resolver
 from rialto.loader import PysparkFeatureLoader
 from rialto.metadata import MetadataManager
 from rialto.runner import Transformation

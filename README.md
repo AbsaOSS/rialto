@@ -85,8 +85,8 @@ pipelines: # a list of pipelines to run
     frequency: weekly # daily/weekly/monthly
     day: 7 # day of the week or month
     info_date_shift: #Optional shift in the written information date from the scheduled day
-      units: "days" # days/weeks/months/years
-      value: 5 # subtracted from scheduled day
+      - units: "days" # days/weeks/months/years
+        value: 5 # subtracted from scheduled day
   dependencies: # list of dependent tables
     - table: catalog.schema.table1
       name: "table1" # Optional table name, used to recall dependency details in transformation
@@ -372,7 +372,7 @@ With that sorted out, we can now provide a quick example of the *rialto.jobs* mo
 ```python
 from pyspark.sql import DataFrame
 from rialto.common import TableReader
-from rialto.jobs.decorators import config, job, datasource
+from rialto.jobs.decorators import config_parser, job, datasource
 from rialto.runner.config_loader import PipelineConfig
 from pydantic import BaseModel
 
@@ -381,9 +381,11 @@ class ConfigModel(BaseModel):
     some_value: int
     some_other_value: str
 
-@config
+
+@config_parser
 def my_config(config: PipelineConfig):
     return ConfigModel(**config.extras)
+
 
 @datasource
 def my_datasource(run_date: datetime.date, table_reader: TableReader) -> DataFrame:
@@ -442,43 +444,47 @@ Assuming we have a my_package.test_job_module.py module:
 ```python3
 @datasource
 def datasource_a(...)
-    ... code ...
+    ... code...
 
 @job
 def my_job(datasource_a, ...)
-    ... code ...
+    ... code...
 ```
 The *disable_job_decorators* context manager, as the name suggests, disables all decorator functionality and lets you access your functions as raw functions - making it super simple to unit-test:
+
 ```python3
-from rialto.jobs.decorators.test_utils import disable_job_decorators
+from rialto.jobs.test_utils import disable_job_decorators
 import my_package.test_job_module as tjm
+
 
 # Datasource Testing
 def test_datasource_a():
-    ... mocks here ...
+    ... mocks here...
 
     with disable_job_decorators(tjm):
-        datasource_a_output = tjm.datasource_a(... mocks ...)
+        datasource_a_output = tjm.datasource_a(...mocks...)
 
-        ... asserts ...
+        ...asserts...
+
 
 # Job Testing
 def test_my_job():
     datasource_a_mock = ...
-    ... other mocks...
+    ...other mocks...
 
     with disable_job_decorators(tjm):
-        job_output = tjm.my_job(datasource_a_mock, ... mocks ...)
+        job_output = tjm.my_job(datasource_a_mock, ...mocks...)
 
-        ... asserts ...
+        ...asserts...
 ```
 
 #### 2. Testing the @job Dependency Tree
 In complex use cases, it may happen that the dependencies of a job become quite complex. Or you simply want to be sure that you didn't accidentally misspelled your dependency name:
 
 ```python3
-from rialto.jobs.decorators.test_utils import resolver_resolves
+from rialto.jobs.test_utils import resolver_resolves
 import my_job.test_job_module as tjm
+
 
 def test_my_job_resolves(spark):
     assert resolver_resolves(spark, tjm.my_job)

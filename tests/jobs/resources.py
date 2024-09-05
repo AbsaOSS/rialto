@@ -15,7 +15,7 @@ import typing
 
 import pandas as pd
 
-from rialto.jobs.decorators.job_base import JobBase
+from rialto.jobs.job_base import JobBase
 
 
 def custom_callable():

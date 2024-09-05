@@ -14,8 +14,8 @@
 
 from importlib import import_module
 
-from rialto.jobs.decorators.job_base import JobBase
-from rialto.jobs.decorators.resolver import Resolver
+from rialto.jobs.job_base import JobBase
+from rialto.jobs.resolver import Resolver
 
 
 def test_dataset_decorator():

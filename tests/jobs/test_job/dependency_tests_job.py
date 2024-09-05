@@ -1,4 +1,4 @@
-from rialto.jobs.decorators import datasource, job
+from rialto.jobs import datasource, job
 
 
 @datasource
@@ -47,5 +47,5 @@ def missing_dependency_job(a, x):
 
 
 @job
-def default_dependency_job(run_date, spark, config, table_reader, feature_loader):
+def default_dependency_job(run_date, spark, config):
     return 1

@@ -19,7 +19,7 @@ from unittest.mock import MagicMock
 import pyspark.sql.types
 
 import tests.jobs.resources as resources
-from rialto.jobs.decorators.resolver import Resolver
+from rialto.jobs.resolver import Resolver
 from rialto.loader import PysparkFeatureLoader
 
 
