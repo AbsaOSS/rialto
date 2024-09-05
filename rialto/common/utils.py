@@ -19,9 +19,10 @@ from typing import Any
 
 import pyspark.sql.functions as F
 import yaml
-from env_yaml import EnvLoader
 from pyspark.sql import DataFrame
 from pyspark.sql.types import FloatType
+
+from rialto.common.env_yaml import EnvLoader
 
 
 def load_yaml(path: str) -> Any:
