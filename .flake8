@@ -14,3 +14,4 @@ extend-ignore =
     D100,
     D104,
     D107,
+    E203,
