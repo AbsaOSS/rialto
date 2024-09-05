@@ -14,10 +14,10 @@
 import pytest
 
 import rialto.jobs.decorators as decorators
-import tests.jobs.test_job.test_job as test_job
 import tests.jobs.test_job.dependency_tests_job as dependency_tests_job
-from rialto.jobs.decorators.resolver import Resolver
-from rialto.jobs.decorators.test_utils import disable_job_decorators, resolver_resolves
+import tests.jobs.test_job.test_job as test_job
+from rialto.jobs.resolver import Resolver
+from rialto.jobs.test_utils import disable_job_decorators, resolver_resolves
 
 
 def test_raw_dataset_patch(mocker):

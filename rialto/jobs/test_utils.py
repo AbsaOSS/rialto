@@ -19,8 +19,8 @@ import typing
 from contextlib import contextmanager
 from unittest.mock import MagicMock, create_autospec, patch
 
-from rialto.jobs.decorators.job_base import JobBase
-from rialto.jobs.decorators.resolver import Resolver, ResolverException
+from rialto.jobs.job_base import JobBase
+from rialto.jobs.resolver import Resolver, ResolverException
 
 
 def _passthrough_decorator(*args, **kwargs) -> typing.Callable:
@@ -33,12 +33,12 @@ def _passthrough_decorator(*args, **kwargs) -> typing.Callable:
 @contextmanager
 def _disable_job_decorators() -> None:
     patches = [
+        patch("rialto.jobs.datasource", _passthrough_decorator),
         patch("rialto.jobs.decorators.datasource", _passthrough_decorator),
-        patch("rialto.jobs.decorators.decorators.datasource", _passthrough_decorator),
-        patch("rialto.jobs.decorators.config", _passthrough_decorator),
-        patch("rialto.jobs.decorators.decorators.config", _passthrough_decorator),
+        patch("rialto.jobs.config_parser", _passthrough_decorator),
+        patch("rialto.jobs.decorators.config_parser", _passthrough_decorator),
+        patch("rialto.jobs.job", _passthrough_decorator),
         patch("rialto.jobs.decorators.job", _passthrough_decorator),
-        patch("rialto.jobs.decorators.decorators.job", _passthrough_decorator),
     ]
 
     for i in patches:
@@ -101,7 +101,7 @@ def resolver_resolves(spark, job: JobBase) -> bool:
 
             return fake_method
 
-    with patch("rialto.jobs.decorators.resolver.Resolver._storage", SmartStorage()):
+    with patch("rialto.jobs.resolver.Resolver._storage", SmartStorage()):
         job().run(reader=MagicMock(), run_date=MagicMock(), spark=spark)
 
     return True
