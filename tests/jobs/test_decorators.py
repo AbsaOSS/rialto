@@ -15,21 +15,25 @@
 from importlib import import_module
 
 from rialto.jobs.job_base import JobBase
-from rialto.jobs.resolver import Resolver
+from rialto.jobs.module_register import ModuleRegister
 
 
 def test_dataset_decorator():
     _ = import_module("tests.jobs.test_job.test_job")
-    test_dataset = Resolver.resolve("dataset")
 
-    assert test_dataset == "dataset_return"
+    callables = ModuleRegister.get_registered_callables("tests.jobs.test_job.test_job")
+    callable_names = [f.__name__ for f in callables]
+
+    assert "dataset" in callable_names
 
 
 def test_config_decorator():
     _ = import_module("tests.jobs.test_job.test_job")
-    test_dataset = Resolver.resolve("custom_config")
 
-    assert test_dataset == "config_return"
+    callables = ModuleRegister.get_registered_callables("tests.jobs.test_job.test_job")
+    callable_names = [f.__name__ for f in callables]
+
+    assert "custom_config" in callable_names
 
 
 def _rialto_import_stub(module_name, class_name):

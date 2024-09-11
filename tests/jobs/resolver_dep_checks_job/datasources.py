@@ -1,4 +1,7 @@
-from rialto.jobs import datasource, job
+import tests.jobs.resolver_dep_checks_job.dep_package.pkg_datasources as pkg_ds
+from rialto.jobs import datasource, register_module
+
+register_module(pkg_ds)
 
 
 @datasource
@@ -16,11 +19,6 @@ def c(a, b):
     return a + b
 
 
-@job
-def ok_dependency_job(c):
-    return c + 1
-
-
 @datasource
 def d(a, circle_1):
     return circle_1 + a
@@ -36,16 +34,6 @@ def circle_2(circle_1):
     return circle_1 + 1
 
 
-@job
-def circular_dependency_job(d):
-    return d + 1
-
-
-@job
-def missing_dependency_job(a, x):
-    return x + a
-
-
-@job
-def default_dependency_job(run_date, spark, config):
-    return 1
+@datasource
+def datasource_base():
+    return "dataset_base_return"

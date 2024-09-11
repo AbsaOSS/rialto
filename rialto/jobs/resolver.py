@@ -46,6 +46,18 @@ class Resolver:
         return result_dict
 
     @classmethod
+    def register_object(cls, object: typing.Any, name: str) -> None:
+        """
+        Register an object with a given name for later resolution.
+
+        :param object: object to register (getter)
+        :param name: str, custom name
+        :return: None
+        """
+
+        cls.register_callable(lambda: object, name)
+
+    @classmethod
     def register_callable(cls, callable: typing.Callable, name: str = None) -> str:
         """
         Register callable with a given name for later resolution.
@@ -58,6 +70,10 @@ class Resolver:
         """
         if name is None:
             name = getattr(callable, "__name__", repr(callable))
+        """
+        if name in cls._storage:
+            raise ResolverException(f"Resolver already registered {name}!")
+        """
 
         cls._storage[name] = callable
         return name
@@ -97,14 +113,11 @@ class Resolver:
         return cls.resolve(name)
 
     @classmethod
-    def cache_clear(cls) -> None:
+    def clear(cls) -> None:
         """
-        Clear resolver cache.
-
-        The resolve method caches its results to avoid duplication of resolutions.
-        However, in case we re-register some callables, we need to clear cache
-        in order to ensure re-execution of all resolutions.
+        Clear all registered datasources and jobs.
 
         :return: None
         """
         cls.resolve.cache_clear()
+        cls._storage.clear()

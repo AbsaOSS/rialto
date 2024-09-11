@@ -89,6 +89,9 @@ def resolver_resolves(spark, job: JobBase) -> bool:
         def keys(self):
             return self._storage.keys()
 
+        def clear(self):
+            self._storage.clear()
+
         def __getitem__(self, func_name):
             if func_name in self._call_stack:
                 raise ResolverException(f"Circular Dependence on {func_name}!")
@@ -102,6 +105,12 @@ def resolver_resolves(spark, job: JobBase) -> bool:
             return fake_method
 
     with patch("rialto.jobs.resolver.Resolver._storage", SmartStorage()):
-        job().run(reader=MagicMock(), run_date=MagicMock(), spark=spark)
+        job().run(
+            reader=MagicMock(),
+            run_date=MagicMock(),
+            spark=spark,
+            metadata_manager=MagicMock(),
+            feature_loader=MagicMock(),
+        )
 
     return True

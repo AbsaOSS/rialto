@@ -12,10 +12,11 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-__all__ = ["load_yaml"]
+__all__ = ["load_yaml", "cast_decimals_to_floats", "get_caller_module"]
 
+import inspect
 import os
-from typing import Any
+from typing import Any, List
 
 import pyspark.sql.functions as F
 import yaml
@@ -51,3 +52,22 @@ def cast_decimals_to_floats(df: DataFrame) -> DataFrame:
         df = df.withColumn(c, F.col(c).cast(FloatType()))
 
     return df
+
+
+def get_caller_module() -> Any:
+    """
+    Ged module containing the function which is calling your function.
+
+    Inspects the call stack, where:
+    0th entry is this function
+    1st entry is the function which needs to know who called it
+    2nd entry is the calling function
+
+    Therefore, we'll return a module which contains the function at the 2nd place on the stack.
+
+    :return: Python Module containing the calling function.
+    """
+
+    stack = inspect.stack()
+    last_stack = stack[2]
+    return inspect.getmodule(last_stack[0])

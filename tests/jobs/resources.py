@@ -16,10 +16,18 @@ import typing
 import pandas as pd
 
 from rialto.jobs.job_base import JobBase
+from rialto.jobs.resolver import Resolver
 
 
 def custom_callable():
-    pass
+    return None
+
+
+def asserting_callable():
+    assert Resolver.resolve("run_date")
+    assert Resolver.resolve("config")
+    assert Resolver.resolve("spark")
+    assert Resolver.resolve("table_reader")
 
 
 class CustomJobNoReturnVal(JobBase):
@@ -46,3 +54,8 @@ class CustomJobReturnsDataFrame(CustomJobNoReturnVal):
 class CustomJobNoVersion(CustomJobNoReturnVal):
     def get_job_version(self) -> str:
         return None
+
+
+def CustomJobAssertResolverSetup(CustomJobNoReturnVal):
+    def get_custom_callable():
+        return asserting_callable

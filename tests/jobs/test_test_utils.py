@@ -14,7 +14,9 @@
 import pytest
 
 import rialto.jobs.decorators as decorators
-import tests.jobs.test_job.dependency_tests_job as dependency_tests_job
+import tests.jobs.resolver_dep_checks_job.cross_dep_tests_job_a as cross_dep_tests_job_a
+import tests.jobs.resolver_dep_checks_job.cross_dep_tests_job_b as cross_dep_tests_job_b
+import tests.jobs.resolver_dep_checks_job.dependency_tests_job as dependency_tests_job
 import tests.jobs.test_job.test_job as test_job
 from rialto.jobs.resolver import Resolver
 from rialto.jobs.test_utils import disable_job_decorators, resolver_resolves
@@ -71,3 +73,23 @@ def test_resolver_resolves_fails_missing_dependency(spark):
 
     assert exc_info is not None
     assert str(exc_info.value) == "x declaration not found!"
+
+
+def test_resolver_dep_separation_correct_load_existing(spark):
+    assert resolver_resolves(spark, cross_dep_tests_job_a.ok_dep_job)
+
+
+def test_resolver_dep_separation_fail_load_missing(spark):
+    with pytest.raises(Exception) as exc_info:
+        assert resolver_resolves(spark, cross_dep_tests_job_b.missing_dep_job)
+    assert exc_info is not None
+
+
+def test_resolver_wont_cross_pollinate(spark):
+    # This job has imported the dependencies
+    assert resolver_resolves(spark, cross_dep_tests_job_a.ok_dep_job)
+
+    # This job has no imported dependencies
+    with pytest.raises(Exception) as exc_info:
+        assert resolver_resolves(spark, cross_dep_tests_job_b.missing_dep_job)
+    assert exc_info is not None
