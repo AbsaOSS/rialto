@@ -17,6 +17,12 @@ __all__ = ["ModuleRegister", "register_dependency_module", "register_dependency_
 from rialto.common.utils import get_caller_module
 
 
+class ModuleRegisterException(Exception):
+    """Module Register Exception - Usually, means a clash in the dependencies"""
+
+    pass
+
+
 class ModuleRegister:
     """
     Module register. Class which is used by @datasource and @config_parser decorators to register callables / getters.
@@ -72,13 +78,24 @@ class ModuleRegister:
         :return: The found callable or None if not found.
         """
 
+        found_functions = []
+
         # Loop through this module, and its dependencies
         searched_modules = [module_name] + cls._dependency_tree.get(module_name, [])
         for module in searched_modules:
             # Loop through all functions registered in the module
             for func in cls._storage.get(module, []):
                 if func.__name__ == callable_name:
-                    return func
+                    found_functions.append(func)
+
+        if len(found_functions) == 0:
+            return None
+
+        if len(found_functions) > 1:
+            raise ModuleRegisterException(f"Multiple functions with the same name {callable_name} found !")
+
+        else:
+            return found_functions[0]
 
 
 def register_dependency_module(module):

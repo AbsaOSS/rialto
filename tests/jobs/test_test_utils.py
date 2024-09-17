@@ -16,6 +16,7 @@ import pytest
 import rialto.jobs.decorators as decorators
 import tests.jobs.dependency_checks_job.complex_dependency_job as complex_dependency_job
 import tests.jobs.dependency_checks_job.dependency_checks_job as dependency_checks_job
+import tests.jobs.dependency_checks_job.duplicate_dependency_job as duplicate_dependency_job
 import tests.jobs.test_job.test_job as test_job
 from rialto.jobs.test_utils import disable_job_decorators, resolver_resolves
 
@@ -89,3 +90,19 @@ def test_complex_dependencies_fails_on_unimported(spark):
 
     assert exc_info is not None
     assert str(exc_info.value) == "k declaration not found!"
+
+
+def test_complex_dependencies_fails_on_unimported(spark):
+    with pytest.raises(Exception) as exc_info:
+        assert resolver_resolves(spark, complex_dependency_job.unimported_dependency_job)
+
+    assert exc_info is not None
+    assert str(exc_info.value) == "k declaration not found!"
+
+
+def test_duplicate_dependency_fails_on_duplicate(spark):
+    with pytest.raises(Exception) as exc_info:
+        assert resolver_resolves(spark, duplicate_dependency_job.duplicate_dependency_job)
+
+    assert exc_info is not None
+    assert str(exc_info.value) == f"Multiple functions with the same name i found !"
