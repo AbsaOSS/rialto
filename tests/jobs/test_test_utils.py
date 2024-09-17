@@ -14,23 +14,19 @@
 import pytest
 
 import rialto.jobs.decorators as decorators
-import tests.jobs.resolver_dep_checks_job.cross_dep_tests_job_a as cross_dep_tests_job_a
-import tests.jobs.resolver_dep_checks_job.cross_dep_tests_job_b as cross_dep_tests_job_b
-import tests.jobs.resolver_dep_checks_job.dependency_tests_job as dependency_tests_job
+import tests.jobs.dependency_checks_job.complex_dependency_job as complex_dependency_job
+import tests.jobs.dependency_checks_job.dependency_checks_job as dependency_checks_job
 import tests.jobs.test_job.test_job as test_job
-from rialto.jobs.resolver import Resolver
 from rialto.jobs.test_utils import disable_job_decorators, resolver_resolves
 
 
 def test_raw_dataset_patch(mocker):
-    spy_rc = mocker.spy(Resolver, "register_callable")
     spy_dec = mocker.spy(decorators, "datasource")
 
     with disable_job_decorators(test_job):
         assert test_job.dataset() == "dataset_return"
 
-        spy_dec.assert_not_called()
-        spy_rc.assert_not_called()
+    spy_dec.assert_not_called()
 
 
 def test_job_function_patch(mocker):
@@ -39,7 +35,7 @@ def test_job_function_patch(mocker):
     with disable_job_decorators(test_job):
         assert test_job.job_function() == "job_function_return"
 
-        spy_dec.assert_not_called()
+    spy_dec.assert_not_called()
 
 
 def test_custom_name_job_function_patch(mocker):
@@ -48,48 +44,48 @@ def test_custom_name_job_function_patch(mocker):
     with disable_job_decorators(test_job):
         assert test_job.custom_name_job_function() == "custom_job_name_return"
 
-        spy_dec.assert_not_called()
+    spy_dec.assert_not_called()
 
 
 def test_resolver_resolves_ok_job(spark):
-    assert resolver_resolves(spark, dependency_tests_job.ok_dependency_job)
+    assert resolver_resolves(spark, dependency_checks_job.ok_dependency_job)
 
 
 def test_resolver_resolves_default_dependency(spark):
-    assert resolver_resolves(spark, dependency_tests_job.default_dependency_job)
+    assert resolver_resolves(spark, dependency_checks_job.default_dependency_job)
 
 
-def test_resolver_resolves_fails_circular_dependency(spark):
+def test_resolver_fails_circular_dependency(spark):
     with pytest.raises(Exception) as exc_info:
-        assert resolver_resolves(spark, dependency_tests_job.circular_dependency_job)
+        assert resolver_resolves(spark, dependency_checks_job.circular_dependency_job)
 
     assert exc_info is not None
-    assert str(exc_info.value) == "Circular Dependence on circle_1!"
+    assert str(exc_info.value) == "Circular Dependence in circle_third!"
 
 
-def test_resolver_resolves_fails_missing_dependency(spark):
+def test_resolver_fails_missing_dependency(spark):
     with pytest.raises(Exception) as exc_info:
-        assert resolver_resolves(spark, dependency_tests_job.missing_dependency_job)
+        assert resolver_resolves(spark, dependency_checks_job.missing_dependency_job)
 
     assert exc_info is not None
     assert str(exc_info.value) == "x declaration not found!"
 
 
-def test_resolver_dep_separation_correct_load_existing(spark):
-    assert resolver_resolves(spark, cross_dep_tests_job_a.ok_dep_job)
-
-
-def test_resolver_dep_separation_fail_load_missing(spark):
+def tests_resolver_fails_self_dependency(spark):
     with pytest.raises(Exception) as exc_info:
-        assert resolver_resolves(spark, cross_dep_tests_job_b.missing_dep_job)
+        assert resolver_resolves(spark, dependency_checks_job.self_dependency_job)
+
     assert exc_info is not None
+    assert str(exc_info.value) == "Circular Dependence in self_dependency!"
 
 
-def test_resolver_wont_cross_pollinate(spark):
-    # This job has imported the dependencies
-    assert resolver_resolves(spark, cross_dep_tests_job_a.ok_dep_job)
+def test_complex_dependencies_resolves_correctly(spark):
+    assert resolver_resolves(spark, complex_dependency_job.complex_dependency_job)
 
-    # This job has no imported dependencies
+
+def test_complex_dependencies_fails_on_unimported(spark):
     with pytest.raises(Exception) as exc_info:
-        assert resolver_resolves(spark, cross_dep_tests_job_b.missing_dep_job)
+        assert resolver_resolves(spark, complex_dependency_job.unimported_dependency_job)
+
     assert exc_info is not None
+    assert str(exc_info.value) == "k declaration not found!"

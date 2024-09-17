@@ -12,38 +12,91 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-__all__ = ["ModuleRegister"]
+__all__ = ["ModuleRegister", "register_dependency_module", "register_dependency_callable"]
+
+from rialto.common.utils import get_caller_module
 
 
 class ModuleRegister:
+    """
+    Module register. Class which is used by @datasource and @config_parser decorators to register callables / getters.
+    Resolver, when searching for a getter for f() defined in module M, uses find_callable("f", "M").
+    """
+
     _storage = {}
     _dependency_tree = {}
 
     @classmethod
-    def register_callable(cls, callable):
-        callable_module = callable.__module__
+    def add_callable_to_module(cls, callable, module_name):
+        """
+        Adds a callable to the specified module's storage.
 
-        module_callables = cls._storage.get(callable_module, [])
+        :param callable: The callable to be added.
+        :param module_name: The name of the module to which the callable is added.
+        """
+        module_callables = cls._storage.get(module_name, [])
         module_callables.append(callable)
 
-        cls._storage[callable_module] = module_callables
+        cls._storage[module_name] = module_callables
+
+    @classmethod
+    def register_callable(cls, callable):
+        """
+        Registers a callable by adding it to the module's storage.
+
+        :param callable: The callable to be registered.
+        """
+        callable_module = callable.__module__
+        cls.add_callable_to_module(callable, callable_module)
 
     @classmethod
     def register_dependency(cls, caller_module, module):
-        caller_module_name = caller_module.__name__
-        target_module_name = module.__name__
+        """
+        Registers a module as a dependency of the caller module.
 
-        module_dep_tree = cls._dependency_tree.get(caller_module_name, [])
-        module_dep_tree.append(target_module_name)
+        :param caller_module: The module that is registering the dependency.
+        :param module: The module to be registered as a dependency.
+        """
+        module_dep_tree = cls._dependency_tree.get(caller_module, [])
+        module_dep_tree.append(module)
 
-        cls._dependency_tree[caller_module_name] = module_dep_tree
+        cls._dependency_tree[caller_module] = module_dep_tree
 
     @classmethod
-    def get_registered_callables(cls, module_name):
-        callables = cls._storage.get(module_name, [])
+    def find_callable(cls, callable_name, module_name):
+        """
+        Finds a callable by its name in the specified module and its dependencies.
 
-        for included_module in cls._dependency_tree.get(module_name, []):
-            included_callables = cls.get_registered_callables(included_module)
-            callables.extend(included_callables)
+        :param callable_name: The name of the callable to find.
+        :param module_name: The name of the module to search in.
+        :return: The found callable or None if not found.
+        """
 
-        return callables
+        # Loop through this module, and its dependencies
+        searched_modules = [module_name] + cls._dependency_tree.get(module_name, [])
+        for module in searched_modules:
+            # Loop through all functions registered in the module
+            for func in cls._storage.get(module, []):
+                if func.__name__ == callable_name:
+                    return func
+
+
+def register_dependency_module(module):
+    """
+    Registers a module as a dependency of the caller module.
+
+    :param module: The module to be registered as a dependency.
+    """
+    caller_module = get_caller_module().__name__
+    ModuleRegister.register_dependency(caller_module, module.__name__)
+
+
+def register_dependency_callable(callable):
+    """
+    Registers a callable as a dependency of the caller module.
+    Note that the function will be added to the module's list of available dependencies.
+
+    :param callable: The callable to be registered as a dependency.
+    """
+    caller_module_name = get_caller_module().__name__
+    ModuleRegister.add_callable_to_module(callable, caller_module_name)

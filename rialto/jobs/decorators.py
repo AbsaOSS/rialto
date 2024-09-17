@@ -14,7 +14,6 @@
 
 __all__ = ["datasource", "job", "config_parser"]
 
-import inspect
 import typing
 
 import importlib_metadata
@@ -23,11 +22,6 @@ from loguru import logger
 from rialto.common.utils import get_caller_module
 from rialto.jobs.job_base import JobBase
 from rialto.jobs.module_register import ModuleRegister
-
-
-def register_module(module):
-    caller_module = get_caller_module()
-    ModuleRegister.register_dependency(caller_module, module)
 
 
 def config_parser(cf_getter: typing.Callable) -> typing.Callable:

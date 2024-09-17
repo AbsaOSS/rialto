@@ -20,20 +20,12 @@ from rialto.jobs.module_register import ModuleRegister
 
 def test_dataset_decorator():
     _ = import_module("tests.jobs.test_job.test_job")
-
-    callables = ModuleRegister.get_registered_callables("tests.jobs.test_job.test_job")
-    callable_names = [f.__name__ for f in callables]
-
-    assert "dataset" in callable_names
+    assert ModuleRegister.find_callable("dataset", "tests.jobs.test_job.test_job") is not None
 
 
 def test_config_decorator():
     _ = import_module("tests.jobs.test_job.test_job")
-
-    callables = ModuleRegister.get_registered_callables("tests.jobs.test_job.test_job")
-    callable_names = [f.__name__ for f in callables]
-
-    assert "custom_config" in callable_names
+    assert ModuleRegister.find_callable("custom_config", "tests.jobs.test_job.test_job") is not None
 
 
 def _rialto_import_stub(module_name, class_name):

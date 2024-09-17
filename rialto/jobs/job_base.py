@@ -17,14 +17,12 @@ __all__ = ["JobBase"]
 import abc
 import datetime
 import typing
-from contextlib import contextmanager
 
 import pyspark.sql.functions as F
 from loguru import logger
 from pyspark.sql import DataFrame, SparkSession
 
 from rialto.common import TableReader
-from rialto.jobs.module_register import ModuleRegister
 from rialto.jobs.resolver import Resolver
 from rialto.loader import PysparkFeatureLoader
 from rialto.metadata import MetadataManager
@@ -50,8 +48,7 @@ class JobBase(Transformation):
         """Job name getter"""
         pass
 
-    @contextmanager
-    def _setup_resolver(
+    def _get_resolver(
         self,
         spark: SparkSession,
         run_date: datetime.date,
@@ -59,30 +56,23 @@ class JobBase(Transformation):
         config: PipelineConfig = None,
         metadata_manager: MetadataManager = None,
         feature_loader: PysparkFeatureLoader = None,
-    ) -> None:
-        # Static Always - Available dependencies
-        Resolver.register_object(spark, "spark")
-        Resolver.register_object(run_date, "run_date")
-        Resolver.register_object(config, "config")
-        Resolver.register_object(table_reader, "table_reader")
+    ) -> Resolver:
+        resolver = Resolver()
 
-        # Datasets & Configs
-        callable_module_name = self.get_custom_callable().__module__
-        for m in ModuleRegister.get_registered_callables(callable_module_name):
-            Resolver.register_callable(m)
+        # Static Always - Available dependencies
+        resolver.register_object(spark, "spark")
+        resolver.register_object(run_date, "run_date")
+        resolver.register_object(config, "config")
+        resolver.register_object(table_reader, "table_reader")
 
         # Optionals
         if feature_loader is not None:
-            Resolver.register_object(feature_loader, "feature_loader")
+            resolver.register_object(feature_loader, "feature_loader")
 
         if metadata_manager is not None:
-            Resolver.register_object(metadata_manager, "metadata_manager")
+            resolver.register_object(metadata_manager, "metadata_manager")
 
-        try:
-            yield
-
-        finally:
-            Resolver.clear()
+        return resolver
 
     def _get_timestamp_holder_result(self, spark) -> DataFrame:
         return spark.createDataFrame(
@@ -116,9 +106,10 @@ class JobBase(Transformation):
         :return: dataframe
         """
         try:
-            with self._setup_resolver(spark, run_date, reader, config, metadata_manager, feature_loader):
-                custom_callable = self.get_custom_callable()
-                raw_result = Resolver.register_resolve(custom_callable)
+            resolver = self._get_resolver(spark, run_date, reader, config, metadata_manager, feature_loader)
+
+            custom_callable = self.get_custom_callable()
+            raw_result = resolver.resolve(custom_callable)
 
             if raw_result is None:
                 raw_result = self._get_timestamp_holder_result(spark)

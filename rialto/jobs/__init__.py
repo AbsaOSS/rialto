@@ -12,4 +12,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from rialto.jobs.decorators import config_parser, datasource, job, register_module
+from rialto.jobs.decorators import config_parser, datasource, job
+from rialto.jobs.module_register import (
+    register_dependency_callable,
+    register_dependency_module,
+)

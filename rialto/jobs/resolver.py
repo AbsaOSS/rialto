@@ -16,7 +16,8 @@ __all__ = ["ResolverException", "Resolver"]
 
 import inspect
 import typing
-from functools import cache
+
+from rialto.jobs.module_register import ModuleRegister
 
 
 class ResolverException(Exception):
@@ -33,20 +34,10 @@ class Resolver:
     Calling resolve() we attempt to resolve these dependencies.
     """
 
-    _storage = {}
+    def __init__(self):
+        self._storage = {}
 
-    @classmethod
-    def _get_args_for_call(cls, function: typing.Callable) -> typing.Dict[str, typing.Any]:
-        result_dict = {}
-        signature = inspect.signature(function)
-
-        for param in signature.parameters.values():
-            result_dict[param.name] = cls.resolve(param.name)
-
-        return result_dict
-
-    @classmethod
-    def register_object(cls, object: typing.Any, name: str) -> None:
+    def register_object(self, object: typing.Any, name: str) -> None:
         """
         Register an object with a given name for later resolution.
 
@@ -55,10 +46,9 @@ class Resolver:
         :return: None
         """
 
-        cls.register_callable(lambda: object, name)
+        self.register_getter(lambda: object, name)
 
-    @classmethod
-    def register_callable(cls, callable: typing.Callable, name: str = None) -> str:
+    def register_getter(self, callable: typing.Callable, name: str = None) -> str:
         """
         Register callable with a given name for later resolution.
 
@@ -70,54 +60,45 @@ class Resolver:
         """
         if name is None:
             name = getattr(callable, "__name__", repr(callable))
-        """
-        if name in cls._storage:
-            raise ResolverException(f"Resolver already registered {name}!")
-        """
 
-        cls._storage[name] = callable
+        if name in self._storage:
+            raise ResolverException(f"Resolver already registered {name}!")
+
+        self._storage[name] = callable
         return name
 
-    @classmethod
-    @cache
-    def resolve(cls, name: str) -> typing.Any:
+    def _find_getter(self, name: str, module_name) -> typing.Callable:
+        if name in self._storage.keys():
+            return self._storage[name]
+
+        callable_from_dependencies = ModuleRegister.find_callable(name, module_name)
+        if callable_from_dependencies is None:
+            raise ResolverException(f"{name} declaration not found!")
+
+        return callable_from_dependencies
+
+    def resolve(self, callable: typing.Callable) -> typing.Dict[str, typing.Any]:
         """
-        Search for a callable registered prior and attempt to call it with correct arguents.
+        Take a callable and resolve its dependencies / arguments. Arguments can be
+        a) objects registered via register_object
+        b) callables registered via register_getter
+        c) ModuleRegister registered callables via ModuleRegister.register_callable (+ dependencies)
 
         Arguments are resolved recursively according to requirements; For example, if we have
         a(b, c), b(d), and c(), d() registered, then we recursively call resolve() methods until we resolve
         c, d -> b -> a
 
-        :param name: name of the callable to resolve
+        :param callable: function to resolve
         :return: result of the callable
         """
-        if name not in cls._storage.keys():
-            raise ResolverException(f"{name} declaration not found!")
 
-        getter = cls._storage[name]
-        args = cls._get_args_for_call(getter)
+        arg_list = {}
 
-        return getter(**args)
+        signature = inspect.signature(callable)
+        module_name = callable.__module__
 
-    @classmethod
-    def register_resolve(cls, callable: typing.Callable) -> typing.Any:
-        """
-        Register and Resolve a callable.
+        for param in signature.parameters.values():
+            param_getter = self._find_getter(param.name, module_name)
+            arg_list[param.name] = self.resolve(param_getter)
 
-        Combination of the register() and resolve() methods for a simplified execution.
-
-        :param callable: callable to register and immediately resolve
-        :return: result of the callable
-        """
-        name = cls.register_callable(callable)
-        return cls.resolve(name)
-
-    @classmethod
-    def clear(cls) -> None:
-        """
-        Clear all registered datasources and jobs.
-
-        :return: None
-        """
-        cls.resolve.cache_clear()
-        cls._storage.clear()
+        return callable(**arg_list)
