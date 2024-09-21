@@ -33,6 +33,8 @@ pipelines:
       info_date_shift:
         - value: 3
           units: days
+        - value: 2
+          units: weeks
     dependencies:
       - table: source.schema.dep1
         interval:
@@ -47,17 +49,13 @@ pipelines:
     target:
       target_schema: catalog.schema
       target_partition_column: "INFORMATION_DATE"
-  - name: GroupNoDeps
-    module:
-      python_module: tests.runner.transformations
-      python_class: SimpleGroup
-    schedule:
-      frequency: weekly
-      day: 7
-      info_date_shift:
-        - value: 3
-          units: days
-  - name: NamedDeps
+    feature_loader:
+      config_path: path/to/config.yaml
+      feature_schema: catalog.feature_tables
+      metadata_schema: catalog.metadata
+    metadata_manager:
+      metadata_schema: catalog.metadata
+  - name: OtherGroup
     module:
      python_module: tests.runner.transformations
      python_class: SimpleGroup
@@ -83,3 +81,6 @@ pipelines:
     target:
       target_schema: catalog.schema
       target_partition_column: "INFORMATION_DATE"
+    extras:
+      some_value: 3
+      some_other_value: cat

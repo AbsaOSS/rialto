@@ -14,16 +14,18 @@
 
 from importlib import import_module
 
-from rialto.jobs.configuration.config_holder import ConfigHolder
-from rialto.jobs.decorators.job_base import JobBase
-from rialto.jobs.decorators.resolver import Resolver
+from rialto.jobs.job_base import JobBase
+from rialto.jobs.module_register import ModuleRegister
 
 
 def test_dataset_decorator():
     _ = import_module("tests.jobs.test_job.test_job")
-    test_dataset = Resolver.resolve("dataset")
+    assert ModuleRegister.find_callable("dataset", "tests.jobs.test_job.test_job") is not None
 
-    assert test_dataset == "dataset_return"
+
+def test_config_decorator():
+    _ = import_module("tests.jobs.test_job.test_job")
+    assert ModuleRegister.find_callable("custom_config", "tests.jobs.test_job.test_job") is not None
 
 
 def _rialto_import_stub(module_name, class_name):
@@ -57,9 +59,19 @@ def test_custom_name_function():
     custom_callable = result_class.get_custom_callable()
     assert custom_callable() == "custom_job_name_return"
 
+    job_name = result_class.get_job_name()
+    assert job_name == "custom_job_name"
+
+
+def test_job_disabling_version():
+    result_class = _rialto_import_stub("tests.jobs.test_job.test_job", "disable_version_job_function")
+    assert issubclass(type(result_class), JobBase)
+
+    job_version = result_class.get_job_version()
+    assert job_version is None
+
 
 def test_job_dependencies_registered(spark):
-    ConfigHolder.set_custom_config(value=123)
     job_class = _rialto_import_stub("tests.jobs.test_job.test_job", "job_asking_for_all_deps")
     # asserts part of the run
-    job_class.run(spark=spark, run_date=456, reader=789, metadata_manager=None, dependencies=1011)
+    job_class.run(spark=spark, run_date=456, reader=789, config=123, metadata_manager=654, feature_loader=321)

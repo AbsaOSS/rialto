@@ -20,9 +20,9 @@ from typing import Dict, List
 
 from pyspark.sql import DataFrame, SparkSession
 
+from rialto.common import TableReader
 from rialto.common.utils import cast_decimals_to_floats
 from rialto.loader.config_loader import FeatureConfig, GroupConfig, get_feature_config
-from rialto.loader.data_loader import DataLoader
 from rialto.loader.interfaces import FeatureLoaderInterface
 from rialto.metadata.metadata_manager import (
     FeatureMetadata,
@@ -34,7 +34,13 @@ from rialto.metadata.metadata_manager import (
 class PysparkFeatureLoader(FeatureLoaderInterface):
     """Implementation of feature loader for pyspark environment"""
 
-    def __init__(self, spark: SparkSession, data_loader: DataLoader, metadata_schema: str):
+    def __init__(
+        self,
+        spark: SparkSession,
+        feature_schema: str,
+        metadata_schema: str,
+        date_column: str = "INFORMATION_DATE",
+    ):
         """
         Init
 
@@ -44,10 +50,27 @@ class PysparkFeatureLoader(FeatureLoaderInterface):
         """
         super().__init__()
         self.spark = spark
-        self.data_loader = data_loader
+        self.reader = TableReader(spark)
+        self.feature_schema = feature_schema
+        self.date_col = date_column
         self.metadata = MetadataManager(spark, metadata_schema)
 
     KeyMap = namedtuple("KeyMap", ["df", "key"])
+
+    def read_group(self, group: str, information_date: date) -> DataFrame:
+        """
+        Read a feature group by getting the latest partition by date
+
+        :param group: group name
+        :param information_date: partition date
+        :return: dataframe
+        """
+        return self.reader.get_latest(
+            f"{self.feature_schema}.{group}",
+            date_until=information_date,
+            date_column=self.date_col,
+            uppercase_columns=True,
+        )
 
     def get_feature(self, group_name: str, feature_name: str, information_date: date) -> DataFrame:
         """
@@ -60,9 +83,7 @@ class PysparkFeatureLoader(FeatureLoaderInterface):
         """
         print("This function is untested, use with caution!")
         key = self.get_group_metadata(group_name).key
-        return self.data_loader.read_group(self.get_group_fs_name(group_name), information_date).select(
-            *key, feature_name
-        )
+        return self.read_group(self.get_group_fs_name(group_name), information_date).select(*key, feature_name)
 
     def get_feature_metadata(self, group_name: str, feature_name: str) -> FeatureMetadata:
         """
@@ -83,7 +104,7 @@ class PysparkFeatureLoader(FeatureLoaderInterface):
         :return: A dataframe containing feature group key
         """
         print("This function is untested, use with caution!")
-        return self.data_loader.read_group(self.get_group_fs_name(group_name), information_date)
+        return self.read_group(self.get_group_fs_name(group_name), information_date)
 
     def get_group_metadata(self, group_name: str) -> GroupMetadata:
         """
@@ -144,7 +165,7 @@ class PysparkFeatureLoader(FeatureLoaderInterface):
         """
         key_maps = []
         for mapping in config.maps:
-            df = self.data_loader.read_group(self.get_group_fs_name(mapping), information_date).drop("INFORMATION_DATE")
+            df = self.read_group(self.get_group_fs_name(mapping), information_date).drop("INFORMATION_DATE")
             key = self.metadata.get_group(mapping).key
             key_maps.append(PysparkFeatureLoader.KeyMap(df, key))
         return key_maps
@@ -174,9 +195,7 @@ class PysparkFeatureLoader(FeatureLoaderInterface):
         """
         config = get_feature_config(path)
         # 1 select keys from base
-        base = self.data_loader.read_group(self.get_group_fs_name(config.base.group), information_date).select(
-            config.base.keys
-        )
+        base = self.read_group(self.get_group_fs_name(config.base.group), information_date).select(config.base.keys)
         # 2 join maps onto base (resolve keys)
         if config.maps:
             key_maps = self._get_keymaps(config, information_date)
@@ -184,7 +203,7 @@ class PysparkFeatureLoader(FeatureLoaderInterface):
 
         # 3 read, select and join other tables
         for group_cfg in config.selection:
-            df = self.data_loader.read_group(self.get_group_fs_name(group_cfg.group), information_date)
+            df = self.read_group(self.get_group_fs_name(group_cfg.group), information_date)
             base = self._add_feature_group(base, df, group_cfg)
 
         # 4 fix dtypes for pandas conversion

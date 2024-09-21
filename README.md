@@ -1,4 +1,4 @@
-
+from pydantic import BaseModelfrom rialto.runner.config_loader import PipelineConfigfrom rialto.jobs import config
 
 # Rialto
 
@@ -53,31 +53,21 @@ runner()
 A runner by default executes all the jobs provided in the configuration file, for all the viable execution dates according to the configuration file for which the job has not yet run successfully (i.e. the date partition doesn't exist on the storage)
 This behavior can be modified by various parameters and switches available.
 
-* **feature_metadata_schema** - path to schema where feature metadata are read and stored, needed for [maker](#maker) jobs and jobs that utilized feature [loader](#loader)
 * **run_date** - date at which the runner is triggered (defaults to day of running)
-* **date_from** - starting date (defaults to rundate - config watch period)
-* **date_until** - end date (defaults to rundate)
-* **feature_store_schema** - location of features, needed for jobs utilizing feature [loader](#loader)
-* **custom_job_config** - dictionary with key-value pairs that will be accessible under the "config" variable in your rialto jobs
 * **rerun** - rerun all jobs even if they already succeeded in the past runs
 * **op** - run only selected operation / pipeline
-
+* **skip_dependencies** - ignore dependency checks and run all jobs
+* **overrides** - dictionary of overrides for the configuration
 
 
 Transformations are not included in the runner itself, it imports them dynamically according to the configuration, therefore it's necessary to have them locally installed.
 
-A runner created table has will have automatically created **rialto_date_column** table property set according to target partition set in the configuration.
-
 ### Configuration
 
 ```yaml
-general:
-  target_schema: catalog.schema # schema where tables will be created, must exist
-  target_partition_column: INFORMATION_DATE # date to partition new tables on
-  source_date_column_property: rialto_date_column # name of the date property on source tables
+runner:
   watched_period_units: "months" # unit of default run period
   watched_period_value: 2 # value of default run period
-  job: "run" # run for running the pipelines, check for only checking dependencies
   mail:
     to: # a list of email addresses
       - name@host.domain
@@ -95,12 +85,12 @@ pipelines: # a list of pipelines to run
     frequency: weekly # daily/weekly/monthly
     day: 7 # day of the week or month
     info_date_shift: #Optional shift in the written information date from the scheduled day
-      units: "days" # days/weeks/months/years
-      value: 5 # subtracted from scheduled day
+      - units: "days" # days/weeks/months/years
+        value: 5 # subtracted from scheduled day
   dependencies: # list of dependent tables
     - table: catalog.schema.table1
       name: "table1" # Optional table name, used to recall dependency details in transformation
-      date_col: generation_date # Optional date column name, takes priority
+      date_col: generation_date # Mandatory date column name
       interval: # mandatory availability interval, subtracted from scheduled day
         units: "days"
         value: 1
@@ -109,6 +99,18 @@ pipelines: # a list of pipelines to run
       interval:
         units: "months"
         value: 1
+  target:
+      target_schema: catalog.schema # schema where tables will be created, must exist
+      target_partition_column: INFORMATION_DATE # date to partition new tables on
+  metadata_manager: # optional
+      metadata_schema: catalog.metadata # schema where metadata is stored
+  feature_loader: # optional
+      config_path: model_features_config.yaml # path to the feature loader configuration file
+      feature_schema: catalog.feature_tables # schema where feature tables are stored
+      metadata_schema: catalog.metadata # schema where metadata is stored
+  extras: #optional arguments processed as dictionary
+    some_value: 3
+    some_other_value: giraffe
 
 - name: PipelineTable1 # will be written as pipeline_table1
   module:
@@ -127,8 +129,67 @@ pipelines: # a list of pipelines to run
       interval:
         units: "days"
         value: 6
+  target:
+      target_schema: catalog.schema # schema where tables will be created, must exist
+      target_partition_column: INFORMATION_DATE # date to partition new tables on
 ```
 
+The configuration can be dynamically overridden by providing a dictionary of overrides to the runner. All overrides must adhere to configurations schema, with pipeline.extras section available for custom schema.
+Here are few examples of overrides:
+
+#### Simple override of a single value
+Specify the path to the value in the configuration file as a dot-separated string
+
+```python
+Runner(
+        spark,
+        config_path="tests/overrider.yaml",
+        run_date="2023-03-31",
+        overrides={"runner.watch_period_value": 4},
+    )
+```
+
+#### Override list element
+You can refer to list elements by their index (starting with 0)
+```python
+overrides={"runner.mail.to[1]": "a@b.c"}
+```
+
+#### Append to list
+You can append to list by using index -1
+```python
+overrides={"runner.mail.to[-1]": "test@test.com"}
+```
+
+#### Lookup by attribute value in a list
+You can use the following syntax to find a specific element in a list by its attribute value
+```python
+overrides={"pipelines[name=SimpleGroup].target.target_schema": "new_schema"},
+```
+
+#### Injecting/Replacing whole sections
+You can directly replace a bigger section of the configuration by providing a dictionary
+When the whole section doesn't exist, it will be added to the configuration, however it needs to be added as a whole.
+i.e. if the yaml file doesn't specify feature_loader, you can't just add a feature_loader.config_path, you need to add the whole section.
+```python
+overrides={"pipelines[name=SimpleGroup].feature_loader":
+                           {"config_path": "features_cfg.yaml",
+                            "feature_schema": "catalog.features",
+                            "metadata_schema": "catalog.metadata"}}
+```
+
+#### Multiple overrides
+You can provide multiple overrides at once, the order of execution is not guaranteed
+```python
+overrides={"runner.watch_period_value": 4,
+           "runner.watch_period_units": "weeks",
+           "pipelines[name=SimpleGroup].target.target_schema": "new_schema",
+           "pipelines[name=SimpleGroup].feature_loader":
+                           {"config_path": "features_cfg.yaml",
+                            "feature_schema": "catalog.features",
+                            "metadata_schema": "catalog.metadata"}
+           }
+```
 
 
 ## <a id="maker"></a> 2.2 - maker
@@ -288,7 +349,7 @@ Rialto jobs simplify creation of runner transformations. Instead of having to in
 
 As the names might suggest,
 * *datasource* registers the function below as a valid datasource, which can be used as dependency
-* *job* registers the decorated function as a Rialo transformation.
+* *job* registers the decorated function as a Rialto transformation.
 
 The output / return value of both functions **should/has to be** a python dataframe *(or nothing for jobs, more on that later)*.
 
@@ -302,6 +363,7 @@ We have a set of pre-defined dependencies:
 * **dependencies** returns a dictionary containing the job dependencies config
 * **table_reader** returns *TableReader*
 * **feature_loader** provides *PysparkFeatureLoader*
+* **metadata_manager** provides *MetadataManager*
 
 Apart from that, each **datasource** also becomes a fully usable dependency. Note, that this means that datasources can also be dependent on other datasources - just beware of any circular dependencies!
 
@@ -310,62 +372,155 @@ With that sorted out, we can now provide a quick example of the *rialto.jobs* mo
 ```python
 from pyspark.sql import DataFrame
 from rialto.common import TableReader
-from rialto.jobs.decorators import job, datasource
+from rialto.jobs import config_parser, job, datasource
+from rialto.runner.config_loader import PipelineConfig
+from pydantic import BaseModel
+
+
+class ConfigModel(BaseModel):
+    some_value: int
+    some_other_value: str
+
+
+@config_parser
+def my_config(config: PipelineConfig):
+    return ConfigModel(**config.extras)
+
 
 @datasource
 def my_datasource(run_date: datetime.date, table_reader: TableReader) -> DataFrame:
-  return table_reader.get_latest("my_catalog.my_schema.my_table", until=run_date)
+    return table_reader.get_latest("my_catalog.my_schema.my_table", date_until=run_date)
 
 
 @job
-def my_job(my_datasource: DataFrame) -> DataFrame:
-  return my_datasource.withColumn("HelloWorld", F.lit(1))
+def my_job(my_datasource: DataFrame, my_config: ConfigModel) -> DataFrame:
+    return my_datasource.withColumn("HelloWorld", F.lit(my_config.some_value))
 ```
-This piece of code creates a rialto transformation called *my_job*, which is then callable by the rialto runner. It first sources the *my_datasource* and then runs *my_job* on top of that datasource.
+This piece of code
+1. creates a rialto transformation called *my_job*, which is then callable by the rialto runner.
+2. It sources the *my_datasource* and then runs *my_job* on top of that datasource.
+3. Rialto adds VERSION (of your package) and INFORMATION_DATE (as per config) columns automatically.
+4. The rialto runner stores the final to a catalog, to a table according to the job's name.
 
-### job naming / outputs
-The rialto runner creates a final table according to the job's name. Therefore, we do support 2 ways of creating jobs:
+### Custom job names
+Note, that by default, the rialto job name is your function name. To allow more flexibility, we allow renaming of the job:
 ```python
-@job("my_custom_name")
+@job(custom_name="my_custom_name")
 def f(...):
     ...
+```
+Just note that any *WeirdCaseNames* will be transformed to *lower_case_with_underscores*.
 
-@job
-def my_custom_name(...):
+### Disabling Versioning
+If you want to disable versioning of your job (adding package VERSION column to your output):
+
+```python3
+@job(disable_version=True)
+def my_job(...):
     ...
 ```
-Up to you, both work. Just note that any *WeirdCaseNames* will be transformed to *lower_case_with_underscores*.
+These parameters can be used separately, or combined.
 
-### notes / rules
+### Notes & Rules
 The rules for the dependencies are fairly straightforward.
 Both **jobs** and **datasources** can only depend on *pre-defined* dependencies and other *datasources*. Meaning:
 * *datasource -> datasource -> job* is perfectly fine,
 * *datasource -> job -> datasource* will result in an error.
 
 Secondly, the jobs can, but **don't necessarily have to output** a dataframe.
-In case your job doesn't output a dataframe, your job will only return a bunch of rows, which will ensure that rialto notices that the job ran successfully.
+In case your job doesn't output a dataframe, your job will return an artificially-created, one-row dataframe, which will ensure that rialto notices that the job ran successfully.
 This can be useful in **model training**.
 
 Finally, remember, that your jobs are still just *Rialto Transformations* internally.
 Meaning that at the end of the day, you should always read some data, do some operations on it and either return a pyspark DataFrame, or not return anything and let the framework return the placeholder one.
 
+
+### Importing / Registering Datasources
+Datasources required for a job (or another datasource) can be defined in a different module. 
+To register your module as a datasource, you can use the following functions:
+
+```python3
+from rialto.jobs import register_dependency_callable, register_dependency_module
+import my_package.my_datasources as md
+import my_package.my_datasources_big as big_md
+
+# Register an entire dependency module
+register_dependency_module(md)
+
+# Register a single datasource from a bigger module
+register_dependency_callable(big_md.sample_datasource)
+
+@job
+def my_job(my_datasource, sample_datasource: DataFrame, ...):
+    ...
+```
+
+Each job/datasource can only resolve datasources it has defined as dependencies.
+
+**NOTE**: While ```register_dependency_module``` only registers a module as available dependencies, the ```register_dependency_callable``` actually brings the datasource into the targed module - and thus becomes available for export in the dependency chains.
+
+
+### Testing
+One of the main advantages of the jobs module is simplification of unit tests for your transformations. Rialto provides following tools:
+
+#### 1. Disabling Decorators
+
+Assuming we have a my_package.test_job_module.py module:
+```python3
+@datasource
+def datasource_a(...)
+    ... code...
+
+@job
+def my_job(datasource_a, ...)
+    ... code...
+```
+The *disable_job_decorators* context manager, as the name suggests, disables all decorator functionality and lets you access your functions as raw functions - making it super simple to unit-test:
+
+```python3
+from rialto.jobs.test_utils import disable_job_decorators
+import my_package.test_job_module as tjm
+
+
+# Datasource Testing
+def test_datasource_a():
+    ... mocks here...
+
+    with disable_job_decorators(tjm):
+        datasource_a_output = tjm.datasource_a(...mocks...)
+
+        ...asserts...
+
+
+# Job Testing
+def test_my_job():
+    datasource_a_mock = ...
+    ...other mocks...
+
+    with disable_job_decorators(tjm):
+        job_output = tjm.my_job(datasource_a_mock, ...mocks...)
+
+        ...asserts...
+```
+
+#### 2. Testing the @job Dependency Tree
+In complex use cases, it may happen that the dependencies of a job become quite complex. Or you simply want to be sure that you didn't accidentally misspelled your dependency name:
+
+```python3
+from rialto.jobs.test_utils import resolver_resolves
+import my_job.test_job_module as tjm
+
+
+def test_my_job_resolves(spark):
+    assert resolver_resolves(spark, tjm.my_job)
+```
+
+The code above fails if *my_job* depends on an undefined datasource (even indirectly), and detects cases where there's a circular dependency.
+
 ## <a id="loader"></a> 2.4 - loader
 This module is used to load features from feature store into your models and scripts. Loader provides options to load singular features, whole feature groups, as well as a selection of features from multiple groups defined in a config file, and served as a singular dataframe. It also provides interface to access feature metadata.
 
 Two public classes are exposed form this module. **DatabricksLoader**(DataLoader), **PysparkFeatureLoader**(FeatureLoaderInterface).
-
-### DatabricksLoader
-This is a support class for feature loader and provides the data reading capability from the feature store.
-
-This class needs to be instantiated with an active spark session and a path to the feature store schema (in the format of "catalog_name.schema_name").
-Optionally a date_column information can be passed, otherwise it defaults to use INFORMATION_DATE
-```python
-from rialto.loader import DatabricksLoader
-
-data_loader = DatabricksLoader(spark= spark_instance, schema= "catalog.schema", date_column= "INFORMATION_DATE")
-```
-
-This class provides one method, read_group(...), which returns a whole feature group for selected date. This is mostly used inside feature loader.
 
 ### PysparkFeatureLoader
 
@@ -374,17 +529,16 @@ This class needs to be instantiated with an active spark session, data loader an
 ```python
 from rialto.loader import PysparkFeatureLoader
 
-feature_loader = PysparkFeatureLoader(spark= spark_instance, data_loader= data_loader_instance, metadata_schema= "catalog.schema")
+feature_loader = PysparkFeatureLoader(spark= spark_instance, feature_schema="catalog.schema", metadata_schema= "catalog.schema2", date_column="information_date")
 ```
 
 #### Single feature
 
 ```python
-from rialto.loader import DatabricksLoader, PysparkFeatureLoader
+from rialto.loader import PysparkFeatureLoader
 from datetime import datetime
 
-data_loader = DatabricksLoader(spark, "feature_catalog.feature_schema")
-feature_loader = PysparkFeatureLoader(spark, data_loader, "metadata_catalog.metadata_schema")
+feature_loader = PysparkFeatureLoader(spark, "feature_catalog.feature_schema", "metadata_catalog.metadata_schema")
 my_date = datetime.strptime("2020-01-01", "%Y-%m-%d").date()
 
 feature = feature_loader.get_feature(group_name="CustomerFeatures", feature_name="AGE", information_date=my_date)
@@ -395,11 +549,10 @@ metadata = feature_loader.get_feature_metadata(group_name="CustomerFeatures", fe
 This method of data access is only recommended for experimentation, as the group schema can evolve over time.
 
 ```python
-from rialto.loader import DatabricksLoader, PysparkFeatureLoader
+from rialto.loader import PysparkFeatureLoader
 from datetime import datetime
 
-data_loader = DatabricksLoader(spark, "feature_catalog.feature_schema")
-feature_loader = PysparkFeatureLoader(spark, data_loader, "metadata_catalog.metadata_schema")
+feature_loader = PysparkFeatureLoader(spark, "feature_catalog.feature_schema", "metadata_catalog.metadata_schema")
 my_date = datetime.strptime("2020-01-01", "%Y-%m-%d").date()
 
 features = feature_loader.get_group(group_name="CustomerFeatures", information_date=my_date)
@@ -409,11 +562,10 @@ metadata = feature_loader.get_group_metadata(group_name="CustomerFeatures")
 #### Configuration
 
 ```python
-from rialto.loader import DatabricksLoader, PysparkFeatureLoader
+from rialto.loader import PysparkFeatureLoader
 from datetime import datetime
 
-data_loader = DatabricksLoader(spark, "feature_catalog.feature_schema")
-feature_loader = PysparkFeatureLoader(spark, data_loader, "metadata_catalog.metadata_schema")
+feature_loader = PysparkFeatureLoader(spark, "feature_catalog.feature_schema", "metadata_catalog.metadata_schema")
 my_date = datetime.strptime("2020-01-01", "%Y-%m-%d").date()
 
 features = feature_loader.get_features_from_cfg(path="local/configuration/file.yaml", information_date=my_date)
@@ -499,6 +651,7 @@ reader = TableReader(spark=spark_instance)
 ```
 
 usage of _get_table_:
+
 ```python
 # get whole table
 df = reader.get_table(table="catalog.schema.table", date_column="information_date")
@@ -509,10 +662,11 @@ from datetime import datetime
 start = datetime.strptime("2020-01-01", "%Y-%m-%d").date()
 end = datetime.strptime("2024-01-01", "%Y-%m-%d").date()
 
-df = reader.get_table(table="catalog.schema.table", info_date_from=start, info_date_to=end)
+df = reader.get_table(table="catalog.schema.table", date_from=start, date_to=end, date_column="information_date")
 ```
 
 usage of _get_latest_:
+
 ```python
 # most recent partition
 df = reader.get_latest(table="catalog.schema.table", date_column="information_date")
@@ -520,7 +674,7 @@ df = reader.get_latest(table="catalog.schema.table", date_column="information_da
 # most recent partition until
 until = datetime.strptime("2020-01-01", "%Y-%m-%d").date()
 
-df = reader.get_latest(table="catalog.schema.table", until=until, date_column="information_date")
+df = reader.get_latest(table="catalog.schema.table", date_until=until, date_column="information_date")
 
 ```
 For full information on parameters and their optionality see technical documentation.
@@ -528,21 +682,6 @@ For full information on parameters and their optionality see technical documenta
 _TableReader_ needs an active spark session and an information which column is the **date column**.
 There are three options how to pass that information on.
 
-In order of priority from highest:
-* Explicit _date_column_ parameter in _get_table_ and _get_latest_
-```python
-reader.get_latest(table="catalog.schema.table", date_column="information_date")
-```
-* Inferred from delta metadata, triggered by init parameter, only works on delta tables (e.g. doesn't work on views)
-```python
-reader = TableReader(spark=spark_instance, infer_partition=True)
-reader.get_latest(table="catalog.schema.table")
-```
-* A custom sql property defined on the table containing the date column name, defaults to _rialto_date_column_
-```python
-reader = TableReader(spark=spark_instance, date_property="rialto_date_column")
-reader.get_latest(table="catalog.schema.table")
-```
 
 # <a id="contributing"></a> 3. Contributing
 Contributing:

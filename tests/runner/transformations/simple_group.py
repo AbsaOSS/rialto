@@ -18,6 +18,7 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import StructType
 
 from rialto.common import TableReader
+from rialto.loader import PysparkFeatureLoader
 from rialto.metadata import MetadataManager
 from rialto.runner import Transformation
 
@@ -28,7 +29,8 @@ class SimpleGroup(Transformation):
         reader: TableReader,
         run_date: datetime.date,
         spark: SparkSession = None,
-        metadata_manager: MetadataManager = None,
-        dependencies: Dict = None,
+        config: Dict = None,
+        metadata: MetadataManager = None,
+        feature_loader: PysparkFeatureLoader = None,
     ) -> DataFrame:
         return spark.createDataFrame([], StructType([]))

@@ -12,29 +12,11 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-__all__ = ["DataLoader", "FeatureLoaderInterface"]
+__all__ = ["FeatureLoaderInterface"]
 
 import abc
 from datetime import date
 from typing import Dict
-
-
-class DataLoader(metaclass=abc.ABCMeta):
-    """
-    An interface to read feature groups from storage
-
-    Requires read_group function.
-    """
-
-    @abc.abstractmethod
-    def read_group(self, group: str, information_date: date):
-        """
-        Read one feature group
-
-        :param group: Group name
-        :param information_date: date
-        """
-        raise NotImplementedError
 
 
 class FeatureLoaderInterface(metaclass=abc.ABCMeta):

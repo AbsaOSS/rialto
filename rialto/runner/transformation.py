@@ -16,12 +16,13 @@ __all__ = ["Transformation"]
 
 import abc
 import datetime
-from typing import Dict
 
 from pyspark.sql import DataFrame, SparkSession
 
-from rialto.common import TableReader
+from rialto.common import DataReader
+from rialto.loader import PysparkFeatureLoader
 from rialto.metadata import MetadataManager
+from rialto.runner.config_loader import PipelineConfig
 
 
 class Transformation(metaclass=abc.ABCMeta):
@@ -30,11 +31,12 @@ class Transformation(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def run(
         self,
-        reader: TableReader,
+        reader: DataReader,
         run_date: datetime.date,
         spark: SparkSession = None,
+        config: PipelineConfig = None,
         metadata_manager: MetadataManager = None,
-        dependencies: Dict = None,
+        feature_loader: PysparkFeatureLoader = None,
     ) -> DataFrame:
         """
         Run the transformation
@@ -42,7 +44,9 @@ class Transformation(metaclass=abc.ABCMeta):
         :param reader: data store api object
         :param run_date: date
         :param spark: spark session
-        :param metadata_manager: metadata api object
+        :param config: pipeline config
+        :param metadata_manager: metadata manager
+        :param feature_loader: feature loader
         :return: dataframe
         """
         raise NotImplementedError

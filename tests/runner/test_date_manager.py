@@ -144,7 +144,7 @@ def test_run_dates_invalid():
     [(7, "2023-02-26"), (3, "2023-03-02"), (-5, "2023-03-10"), (0, "2023-03-05")],
 )
 def test_to_info_date(shift, res):
-    cfg = ScheduleConfig(frequency="daily", info_date_shift=IntervalConfig(units="days", value=shift))
+    cfg = ScheduleConfig(frequency="daily", info_date_shift=[IntervalConfig(units="days", value=shift)])
     base = DateManager.str_to_date("2023-03-05")
     info = DateManager.to_info_date(base, cfg)
     assert DateManager.str_to_date(res) == info
@@ -155,7 +155,7 @@ def test_to_info_date(shift, res):
     [("days", "2023-03-02"), ("weeks", "2023-02-12"), ("months", "2022-12-05"), ("years", "2020-03-05")],
 )
 def test_info_date_shift_units(unit, result):
-    cfg = ScheduleConfig(frequency="daily", info_date_shift=IntervalConfig(units=unit, value=3))
+    cfg = ScheduleConfig(frequency="daily", info_date_shift=[IntervalConfig(units=unit, value=3)])
     base = DateManager.str_to_date("2023-03-05")
     info = DateManager.to_info_date(base, cfg)
     assert DateManager.str_to_date(result) == info

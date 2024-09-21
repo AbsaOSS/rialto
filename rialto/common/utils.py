@@ -12,15 +12,18 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-__all__ = ["load_yaml", "get_date_col_property", "get_delta_partition"]
+__all__ = ["load_yaml", "cast_decimals_to_floats", "get_caller_module"]
 
+import inspect
 import os
-from typing import Any
+from typing import Any, List
 
 import pyspark.sql.functions as F
 import yaml
 from pyspark.sql import DataFrame
 from pyspark.sql.types import FloatType
+
+from rialto.common.env_yaml import EnvLoader
 
 
 def load_yaml(path: str) -> Any:
@@ -34,46 +37,14 @@ def load_yaml(path: str) -> Any:
         raise FileNotFoundError(f"Can't find {path}.")
 
     with open(path, "r") as stream:
-        return yaml.safe_load(stream)
-
-
-def get_date_col_property(spark, table: str, property: str) -> str:
-    """
-    Retrieve a data column name from a given table property
-
-    :param spark: spark session
-    :param table: path to table
-    :param property: name of the property
-    :return: data column name
-    """
-    props = spark.sql(f"show tblproperties {table}")
-    date_col = props.filter(F.col("key") == property).select("value").collect()
-    if len(date_col):
-        return date_col[0].value
-    else:
-        raise RuntimeError(f"Table {table} has no property {property}.")
-
-
-def get_delta_partition(spark, table: str) -> str:
-    """
-    Select first partition column of the delta table
-
-    :param table: full table name
-    :return: partition column name
-    """
-    columns = spark.catalog.listColumns(table)
-    partition_columns = list(filter(lambda c: c.isPartition, columns))
-    if len(partition_columns):
-        return partition_columns[0].name
-    else:
-        raise RuntimeError(f"Delta table has no partitions: {table}.")
+        return yaml.load(stream, EnvLoader)
 
 
 def cast_decimals_to_floats(df: DataFrame) -> DataFrame:
     """
     Find all decimal types in the table and cast them to floats. Fixes errors in .toPandas() conversions.
 
-    :param df: pyspark DataFrame
+    :param df: input df
     :return: pyspark DataFrame with fixed types
     """
     decimal_cols = [col_name for col_name, data_type in df.dtypes if "decimal" in data_type]
@@ -81,3 +52,22 @@ def cast_decimals_to_floats(df: DataFrame) -> DataFrame:
         df = df.withColumn(c, F.col(c).cast(FloatType()))
 
     return df
+
+
+def get_caller_module() -> Any:
+    """
+    Ged module containing the function which is calling your function.
+
+    Inspects the call stack, where:
+    0th entry is this function
+    1st entry is the function which needs to know who called it
+    2nd entry is the calling function
+
+    Therefore, we'll return a module which contains the function at the 2nd place on the stack.
+
+    :return: Python Module containing the calling function.
+    """
+
+    stack = inspect.stack()
+    last_stack = stack[2]
+    return inspect.getmodule(last_stack[0])

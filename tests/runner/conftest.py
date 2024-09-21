@@ -39,6 +39,4 @@ def spark(request):
 
 @pytest.fixture(scope="function")
 def basic_runner(spark):
-    return Runner(
-        spark, config_path="tests/runner/transformations/config.yaml", feature_metadata_schema="", run_date="2023-03-31"
-    )
+    return Runner(spark, config_path="tests/runner/transformations/config.yaml", run_date="2023-03-31")
