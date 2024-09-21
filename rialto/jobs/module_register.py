@@ -26,6 +26,7 @@ class ModuleRegisterException(Exception):
 class ModuleRegister:
     """
     Module register. Class which is used by @datasource and @config_parser decorators to register callables / getters.
+
     Resolver, when searching for a getter for f() defined in module M, uses find_callable("f", "M").
     """
 
@@ -33,22 +34,22 @@ class ModuleRegister:
     _dependency_tree = {}
 
     @classmethod
-    def add_callable_to_module(cls, callable, module_name):
+    def add_callable_to_module(cls, callable, parent_name):
         """
-        Adds a callable to the specified module's storage.
+        Add a callable to the specified module's storage.
 
         :param callable: The callable to be added.
-        :param module_name: The name of the module to which the callable is added.
+        :param parent_name: The name of the module to which the callable is added.
         """
-        module_callables = cls._storage.get(module_name, [])
+        module_callables = cls._storage.get(parent_name, [])
         module_callables.append(callable)
 
-        cls._storage[module_name] = module_callables
+        cls._storage[parent_name] = module_callables
 
     @classmethod
     def register_callable(cls, callable):
         """
-        Registers a callable by adding it to the module's storage.
+        Register a callable by adding it to the module's storage.
 
         :param callable: The callable to be registered.
         """
@@ -56,28 +57,28 @@ class ModuleRegister:
         cls.add_callable_to_module(callable, callable_module)
 
     @classmethod
-    def register_dependency(cls, caller_module, module):
+    def register_dependency(cls, module, parent_name):
         """
-        Registers a module as a dependency of the caller module.
+        Register a module as a dependency of the caller module.
 
-        :param caller_module: The module that is registering the dependency.
         :param module: The module to be registered as a dependency.
+        :param parent_name: The module that is registering the dependency.
+
         """
-        module_dep_tree = cls._dependency_tree.get(caller_module, [])
+        module_dep_tree = cls._dependency_tree.get(parent_name, [])
         module_dep_tree.append(module)
 
-        cls._dependency_tree[caller_module] = module_dep_tree
+        cls._dependency_tree[parent_name] = module_dep_tree
 
     @classmethod
     def find_callable(cls, callable_name, module_name):
         """
-        Finds a callable by its name in the specified module and its dependencies.
+        Find a callable by its name in the specified module and its dependencies.
 
         :param callable_name: The name of the callable to find.
         :param module_name: The name of the module to search in.
         :return: The found callable or None if not found.
         """
-
         found_functions = []
 
         # Loop through this module, and its dependencies
@@ -100,20 +101,21 @@ class ModuleRegister:
 
 def register_dependency_module(module):
     """
-    Registers a module as a dependency of the caller module.
+    Register a module as a dependency of the caller module.
 
     :param module: The module to be registered as a dependency.
     """
     caller_module = get_caller_module().__name__
-    ModuleRegister.register_dependency(caller_module, module.__name__)
+    ModuleRegister.register_dependency(module.__name__, caller_module)
 
 
 def register_dependency_callable(callable):
     """
-    Registers a callable as a dependency of the caller module.
+    Register a callable as a dependency of the caller module.
+
     Note that the function will be added to the module's list of available dependencies.
 
     :param callable: The callable to be registered as a dependency.
     """
-    caller_module_name = get_caller_module().__name__
-    ModuleRegister.add_callable_to_module(callable, caller_module_name)
+    caller_module = get_caller_module().__name__
+    ModuleRegister.add_callable_to_module(callable, caller_module)

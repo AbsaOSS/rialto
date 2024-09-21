@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "rialto-dev"
+name = "rialto"
 
 version = "2.0.0"
 
@@ -31,6 +31,7 @@ pandas = "^2.1.0"
 flake8-broken-line = "^1.0.0"
 loguru = "^0.7.2"
 importlib-metadata = "^7.2.1"
+numpy = "<2.0.0"
 
 [tool.poetry.dev-dependencies]
 pyspark = "^3.4.1"
