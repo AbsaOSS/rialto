@@ -77,31 +77,37 @@ def resolver_resolves(spark, job: JobBase) -> bool:
 
     :return: bool, True if job can be resolved
     """
+    call_stack = []
+    original_resolve_method = Resolver.resolve
 
-    class SmartStorage:
-        def __init__(self):
-            self._storage = Resolver._storage.copy()
-            self._call_stack = []
+    def stack_watching_resolver_resolve(self, callable):
+        # Check for cycles
+        if callable in call_stack:
+            raise ResolverException(f"Circular Dependence in {callable.__name__}!")
 
-        def __setitem__(self, key, value):
-            self._storage[key] = value
+        # Append to call stack
+        call_stack.append(callable)
 
-        def keys(self):
-            return self._storage.keys()
+        # Create fake method
+        fake_method = create_autospec(callable)
+        fake_method.__module__ = callable.__module__
 
-        def __getitem__(self, func_name):
-            if func_name in self._call_stack:
-                raise ResolverException(f"Circular Dependence on {func_name}!")
+        # Resolve fake method
+        result = original_resolve_method(self, fake_method)
 
-            self._call_stack.append(func_name)
+        # Remove from call stack
+        call_stack.remove(callable)
 
-            real_method = self._storage[func_name]
-            fake_method = create_autospec(real_method)
-            fake_method.side_effect = lambda *args, **kwargs: self._call_stack.remove(func_name)
+        return result
 
-            return fake_method
-
-    with patch("rialto.jobs.resolver.Resolver._storage", SmartStorage()):
-        job().run(reader=MagicMock(), run_date=MagicMock(), spark=spark)
-
-    return True
+    with patch(f"rialto.jobs.job_base.Resolver.resolve", stack_watching_resolver_resolve):
+        with patch(f"rialto.jobs.job_base.JobBase._add_job_version", lambda _, x: x):
+            job().run(
+                reader=MagicMock(),
+                run_date=MagicMock(),
+                spark=spark,
+                config=MagicMock(),
+                metadata_manager=MagicMock(),
+                feature_loader=MagicMock(),
+            )
+        return True

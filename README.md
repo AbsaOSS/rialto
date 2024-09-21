@@ -372,7 +372,7 @@ With that sorted out, we can now provide a quick example of the *rialto.jobs* mo
 ```python
 from pyspark.sql import DataFrame
 from rialto.common import TableReader
-from rialto.jobs.decorators import config_parser, job, datasource
+from rialto.jobs import config_parser, job, datasource
 from rialto.runner.config_loader import PipelineConfig
 from pydantic import BaseModel
 
@@ -419,7 +419,6 @@ If you want to disable versioning of your job (adding package VERSION column to 
 def my_job(...):
     ...
 ```
-
 These parameters can be used separately, or combined.
 
 ### Notes & Rules
@@ -434,6 +433,32 @@ This can be useful in **model training**.
 
 Finally, remember, that your jobs are still just *Rialto Transformations* internally.
 Meaning that at the end of the day, you should always read some data, do some operations on it and either return a pyspark DataFrame, or not return anything and let the framework return the placeholder one.
+
+
+### Importing / Registering Datasources
+Datasources required for a job (or another datasource) can be defined in a different module. 
+To register your module as a datasource, you can use the following functions:
+
+```python3
+from rialto.jobs import register_dependency_callable, register_dependency_module
+import my_package.my_datasources as md
+import my_package.my_datasources_big as big_md
+
+# Register an entire dependency module
+register_dependency_module(md)
+
+# Register a single datasource from a bigger module
+register_dependency_callable(big_md.sample_datasource)
+
+@job
+def my_job(my_datasource, sample_datasource: DataFrame, ...):
+    ...
+```
+
+Each job/datasource can only resolve datasources it has defined as dependencies.
+
+**NOTE**: While ```register_dependency_module``` only registers a module as available dependencies, the ```register_dependency_callable``` actually brings the datasource into the targed module - and thus becomes available for export in the dependency chains.
+
 
 ### Testing
 One of the main advantages of the jobs module is simplification of unit tests for your transformations. Rialto provides following tools:

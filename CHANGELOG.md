@@ -20,6 +20,10 @@ All notable changes to this project will be documented in this file.
    - config holder removed from jobs
    - metadata_manager and feature_loader are now available arguments, depending on configuration
    - added @config decorator, similar use case to @datasource, for parsing configuration
+   - reworked Resolver + Added ModuleRegister
+     - datasources no longer just by importing, thus are no longer available for all jobs
+     - register_dependency_callable and register_dependency_module added to register datasources
+     - together, it's now possilbe to have 2 datasources with the same name, but different implementations for 2 jobs.
    #### TableReader
    - function signatures changed
      - until -> date_until

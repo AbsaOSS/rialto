@@ -20,46 +20,51 @@ def test_simple_resolve_custom_name():
     def f():
         return 7
 
-    Resolver.register_callable(f, "hello")
+    resolver = Resolver()
+    resolver.register_getter(f, "hello")
 
-    assert Resolver.resolve("hello") == 7
+    assert resolver.resolve(lambda hello: hello) == 7
 
 
 def test_simple_resolve_infer_f_name():
     def f():
-        return 7
+        return 8
 
-    Resolver.register_callable(f)
+    resolver = Resolver()
+    resolver.register_getter(f)
 
-    assert Resolver.resolve("f") == 7
-
-
-def test_dependency_resolve():
-    def f():
-        return 7
-
-    def g(f):
-        return f + 1
-
-    Resolver.register_callable(f)
-    Resolver.register_callable(g)
-
-    assert Resolver.resolve("g") == 8
+    assert resolver.resolve(lambda f: f) == 8
 
 
 def test_resolve_non_defined():
+    resolver = Resolver()
     with pytest.raises(ResolverException):
-        Resolver.resolve("whatever")
+        resolver.resolve(lambda x: ...)
 
 
-def test_register_resolve(mocker):
-    def f():
-        return 7
+def test_resolve_multi_dependency():
+    def a(b, c):
+        return b + c
 
-    mocker.patch("rialto.jobs.resolver.Resolver.register_callable", return_value="f")
-    mocker.patch("rialto.jobs.resolver.Resolver.resolve")
+    def b():
+        return 1
 
-    Resolver.register_resolve(f)
+    def c(d):
+        return d + 10
 
-    Resolver.register_callable.assert_called_once_with(f)
-    Resolver.resolve.assert_called_once_with("f")
+    def d():
+        return 100
+
+    resolver = Resolver()
+    resolver.register_getter(a)
+    resolver.register_getter(b)
+    resolver.register_getter(c)
+    resolver.register_getter(d)
+
+    assert resolver.resolve(a) == 111
+
+
+def test_register_objects():
+    resolver = Resolver()
+    resolver.register_object(7, "seven")
+    assert resolver.resolve(lambda seven: seven) == 7

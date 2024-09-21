@@ -14,14 +14,14 @@
 
 __all__ = ["datasource", "job", "config_parser"]
 
-import inspect
 import typing
 
 import importlib_metadata
 from loguru import logger
 
+from rialto.common.utils import get_caller_module
 from rialto.jobs.job_base import JobBase
-from rialto.jobs.resolver import Resolver
+from rialto.jobs.module_register import ModuleRegister
 
 
 def config_parser(cf_getter: typing.Callable) -> typing.Callable:
@@ -34,7 +34,7 @@ def config_parser(cf_getter: typing.Callable) -> typing.Callable:
     :param cf_getter:  dataset reader function
     :return: raw function, unchanged
     """
-    Resolver.register_callable(cf_getter)
+    ModuleRegister.register_callable(cf_getter)
     return cf_getter
 
 
@@ -48,14 +48,8 @@ def datasource(ds_getter: typing.Callable) -> typing.Callable:
     :param ds_getter:  dataset reader function
     :return: raw reader function, unchanged
     """
-    Resolver.register_callable(ds_getter)
+    ModuleRegister.register_callable(ds_getter)
     return ds_getter
-
-
-def _get_module(stack: typing.List) -> typing.Any:
-    last_stack = stack[1]
-    mod = inspect.getmodule(last_stack[0])
-    return mod
 
 
 def _get_version(module: typing.Any) -> str:
@@ -102,9 +96,7 @@ def job(*args, custom_name=None, disable_version=False):
     :return: One more job wrapper for run function (if custom name or version override specified).
              Otherwise, generates Rialto Transformation Type and returns it for in-module registration.
     """
-    stack = inspect.stack()
-
-    module = _get_module(stack)
+    module = get_caller_module()
     version = _get_version(module)
 
     # Use case where it's just raw @f. Otherwise, we get [] here.
