@@ -61,6 +61,13 @@ def test_sequential_multi_key(input_df):
     assert "TRANSACTIONS_OUTBOUND_VALUE" in df.columns
 
 
+def test_sequential_multi_key_drop(input_df):
+    df, _ = FeatureMaker.make(
+        input_df, ["CUSTOMER_KEY", "TYPE"], date.today(), sequential_outbound, keep_preexisting=False
+    )
+    assert "TRANSACTIONS_OUTBOUND_VALUE" in df.columns
+
+
 def test_sequential_keeps(input_df):
     df, _ = FeatureMaker.make(input_df, "CUSTOMER_KEY", date.today(), sequential_outbound, keep_preexisting=True)
     assert "AMT" in df.columns

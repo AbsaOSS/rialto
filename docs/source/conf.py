@@ -28,7 +28,7 @@ sys.path.insert(0, os.path.abspath("../rialto/"))
 project = "rialto"
 copyright = "2022, Marek Dobransky"
 author = "Marek Dobransky"
-release = "1.3.0"
+release = "2.0.1"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
