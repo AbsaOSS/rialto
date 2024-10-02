@@ -20,6 +20,7 @@ from contextlib import contextmanager
 from unittest.mock import MagicMock, create_autospec, patch
 
 from rialto.jobs.job_base import JobBase
+from rialto.jobs.module_register import ModuleRegister
 from rialto.jobs.resolver import Resolver, ResolverException
 
 
@@ -59,15 +60,17 @@ def disable_job_decorators(module) -> None:
     :return: None
     """
     with _disable_job_decorators():
+        ModuleRegister.remove_module(module)
         importlib.reload(module)
         yield
 
+    ModuleRegister.remove_module(module)
     importlib.reload(module)
 
 
 def resolver_resolves(spark, job: JobBase) -> bool:
     """
-    Checker method for your dependency resoultion.
+    Checker method for your dependency resolution.
 
     If your job's dependencies are all defined and resolvable, returns true.
     Otherwise, throws an exception.
@@ -100,8 +103,8 @@ def resolver_resolves(spark, job: JobBase) -> bool:
 
         return result
 
-    with patch(f"rialto.jobs.job_base.Resolver.resolve", stack_watching_resolver_resolve):
-        with patch(f"rialto.jobs.job_base.JobBase._add_job_version", lambda _, x: x):
+    with patch("rialto.jobs.job_base.Resolver.resolve", stack_watching_resolver_resolve):
+        with patch("rialto.jobs.job_base.JobBase._add_job_version", lambda _, x: x):
             job().run(
                 reader=MagicMock(),
                 run_date=MagicMock(),

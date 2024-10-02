@@ -57,6 +57,15 @@ class ModuleRegister:
         cls.add_callable_to_module(callable, callable_module)
 
     @classmethod
+    def remove_module(cls, module):
+        """
+        Remove a module from the storage.
+
+        :param module: The module to be removed.
+        """
+        cls._storage.pop(module.__name__, None)
+
+    @classmethod
     def register_dependency(cls, module, parent_name):
         """
         Register a module as a dependency of the caller module.

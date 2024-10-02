@@ -49,7 +49,10 @@ class _FeatureMaker:
         :return: None
         """
         self.data_frame = df
-        self.key = key
+        if isinstance(key, str):
+            self.key = [key]
+        else:
+            self.key = key
         self.make_date = make_date
 
     def _order_by_dependencies(self, feature_holders: typing.List[FeatureHolder]) -> typing.List[FeatureHolder]:
@@ -136,7 +139,7 @@ class _FeatureMaker:
             )
         if not keep_preexisting:
             logger.info("Dropping non-selected columns")
-            self.data_frame = self.data_frame.select(self.key, *feature_names)
+            self.data_frame = self.data_frame.select(*self.key, *feature_names)
         return self._filter_null_keys(self.data_frame)
 
     def _make_aggregated(self) -> DataFrame:
