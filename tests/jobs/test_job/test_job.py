@@ -29,6 +29,11 @@ def job_function():
     return "job_function_return"
 
 
+@job
+def job_with_datasource(dataset):
+    return dataset
+
+
 @job(custom_name="custom_job_name")
 def custom_name_job_function():
     return "custom_job_name_return"

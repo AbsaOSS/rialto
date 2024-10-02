@@ -67,7 +67,7 @@ class Runner:
 
         if self.date_from > self.date_until:
             raise ValueError(f"Invalid date range from {self.date_from} until {self.date_until}")
-        logger.info(f"Running period from {self.date_from} until {self.date_until}")
+        logger.info(f"Running period set to: {self.date_from} - {self.date_until}")
 
     def _execute(self, instance: Transformation, run_date: date, pipeline: PipelineConfig) -> DataFrame:
         """
@@ -285,6 +285,7 @@ class Runner:
 
     def __call__(self):
         """Execute pipelines"""
+        logger.info("Executing pipelines")
         try:
             if self.op:
                 selected = [p for p in self.config.pipelines if p.name == self.op]
@@ -297,3 +298,4 @@ class Runner:
         finally:
             print(self.tracker.records)
             self.tracker.report(self.config.runner.mail)
+            logger.info("Execution finished")
