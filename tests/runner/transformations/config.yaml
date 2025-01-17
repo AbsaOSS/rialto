@@ -22,6 +22,7 @@ runner:
       - developer@testing.org
       - developer2@testing.org
     subject: test report
+  bookkeeping: some.test.location
 pipelines:
   - name: SimpleGroup
     module:
