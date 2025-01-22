@@ -16,7 +16,10 @@ __all__ = ["Record"]
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import ClassVar, Optional
+
+from pyspark.sql import Row
+from pyspark.sql.types import DateType, IntegerType, StringType, StructField, StructType
 
 
 @dataclass
@@ -31,3 +34,29 @@ class Record:
     status: str
     reason: str
     exception: Optional[str] = None
+
+    schema: ClassVar[StructType] = StructType(
+        [
+            StructField("job", StringType(), nullable=False),
+            StructField("target", StringType(), nullable=False),
+            StructField("date", DateType(), nullable=False),
+            StructField("time", StringType(), nullable=False),
+            StructField("records", IntegerType(), nullable=False),
+            StructField("status", StringType(), nullable=False),
+            StructField("reason", StringType(), nullable=False),
+            StructField("exception", StringType(), nullable=True),
+        ]
+    )
+
+    def to_spark_row(self) -> Row:
+        """Convert Record to Spark Row"""
+        return Row(
+            job=self.job,
+            target=self.target,
+            date=self.date,
+            time=str(self.time),
+            records=self.records,
+            status=self.status,
+            reason=self.reason,
+            exception=self.exception,
+        )

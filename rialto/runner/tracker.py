@@ -16,6 +16,9 @@ __all__ = ["Tracker"]
 
 from datetime import datetime
 
+from pyspark.sql import SparkSession
+
+from rialto.runner.bookkeeper import BookKeeper
 from rialto.runner.config_loader import MailConfig
 from rialto.runner.mailer import HTMLMessage, Mailer
 from rialto.runner.record import Record
@@ -24,17 +27,22 @@ from rialto.runner.record import Record
 class Tracker:
     """Collect information about runs and sent them out via email"""
 
-    def __init__(self, mail_cfg: MailConfig, bookkeeping: str = None):
+    def __init__(self, mail_cfg: MailConfig, bookkeeping: str = None, spark: SparkSession = None):
         self.records = []
         self.last_error = None
         self.pipeline_start = datetime.now()
         self.exceptions = []
         self.mail_cfg = mail_cfg
-        self.bookkeeping = bookkeeping
+        self.bookkeeper = None
+
+        if bookkeeping:
+            self.bookkeeper = BookKeeper(table=bookkeeping, spark=spark)
 
     def add(self, record: Record) -> None:
         """Add record for one run"""
         self.records.append(record)
+        if self.bookkeeper:
+            self.bookkeeper.add(record)
 
     def report_by_mail(self):
         """Create and send html report"""

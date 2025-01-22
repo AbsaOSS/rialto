@@ -51,7 +51,9 @@ class Runner:
         self.rerun = rerun
         self.skip_dependencies = skip_dependencies
         self.op = op
-        self.tracker = Tracker(mail_cfg=self.config.runner.mail, bookkeeping=self.config.runner.bookkeeping)
+        self.tracker = Tracker(
+            mail_cfg=self.config.runner.mail, bookkeeping=self.config.runner.bookkeeping, spark=spark
+        )
 
         if run_date:
             run_date = DateManager.str_to_date(run_date)
