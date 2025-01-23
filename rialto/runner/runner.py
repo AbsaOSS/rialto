@@ -26,8 +26,9 @@ import rialto.runner.utils as utils
 from rialto.common import TableReader
 from rialto.runner.config_loader import PipelineConfig, get_pipelines_config
 from rialto.runner.date_manager import DateManager
+from rialto.runner.record import Record
 from rialto.runner.table import Table
-from rialto.runner.tracker import Record, Tracker
+from rialto.runner.tracker import Tracker
 from rialto.runner.transformation import Transformation
 
 
@@ -50,7 +51,9 @@ class Runner:
         self.rerun = rerun
         self.skip_dependencies = skip_dependencies
         self.op = op
-        self.tracker = Tracker()
+        self.tracker = Tracker(
+            mail_cfg=self.config.runner.mail, bookkeeping=self.config.runner.bookkeeping, spark=spark
+        )
 
         if run_date:
             run_date = DateManager.str_to_date(run_date)
@@ -297,5 +300,5 @@ class Runner:
                     self._run_pipeline(pipeline)
         finally:
             print(self.tracker.records)
-            self.tracker.report(self.config.runner.mail)
+            self.tracker.report_by_mail()
             logger.info("Execution finished")
