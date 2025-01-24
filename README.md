@@ -75,6 +75,7 @@ runner:
     sender: rialto.noreply@domain # what a sender should say
     smtp: smtp.server.url # your smtp server
     subject: "Rialto report" # Email subject header
+  bookkeeping: catalog.schema.table # optional table where bookkeeping information is stored
 
 pipelines: # a list of pipelines to run
 - name: Pipeline1  #Pipeline name & a name of table it creates (table will be converted to have _ instead of uppercase letters)
@@ -436,7 +437,7 @@ Meaning that at the end of the day, you should always read some data, do some op
 
 
 ### Importing / Registering Datasources
-Datasources required for a job (or another datasource) can be defined in a different module. 
+Datasources required for a job (or another datasource) can be defined in a different module.
 To register your module as a datasource, you can use the following functions:
 
 ```python3
