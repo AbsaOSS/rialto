@@ -1,7 +1,19 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
-## 2.0.0 - 2024-mm-dd
+## 2.0.2 - 2025-01-24
+  ### Runner
+  - new bookkeeping functionality
+    - save reporting information to dataframe
+    - added bookkeeping config option to runner config
+
+## 2.0.1 - 2024-10-02
+  ### bugfixes
+   - compound keys now work properly in sequential features
+   - module register now resets on reload while testing
+
+
+## 2.0.0 - 2024-09-21
    #### Runner
    - runner config now accepts environment variables
    - restructured runner config

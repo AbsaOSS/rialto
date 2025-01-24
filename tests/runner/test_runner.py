@@ -256,7 +256,7 @@ def test_select_dates_all_done(spark, mocker):
 
 
 def test_op_selected(spark, mocker):
-    mocker.patch("rialto.runner.tracker.Tracker.report")
+    mocker.patch("rialto.runner.tracker.Tracker.report_by_mail")
     run = mocker.patch("rialto.runner.runner.Runner._run_pipeline")
 
     runner = Runner(spark, config_path="tests/runner/transformations/config.yaml", op="SimpleGroup")
@@ -266,7 +266,7 @@ def test_op_selected(spark, mocker):
 
 
 def test_op_bad(spark, mocker):
-    mocker.patch("rialto.runner.tracker.Tracker.report")
+    mocker.patch("rialto.runner.tracker.Tracker.report_by_mail")
     mocker.patch("rialto.runner.runner.Runner._run_pipeline")
 
     runner = Runner(spark, config_path="tests/runner/transformations/config.yaml", op="BadOp")
@@ -274,3 +274,17 @@ def test_op_bad(spark, mocker):
     with pytest.raises(ValueError) as exception:
         runner()
     assert str(exception.value) == "Unknown operation selected: BadOp"
+
+
+def test_bookkeeping_active(spark, mocker):
+    mocker.patch("rialto.runner.runner.Runner._run_pipeline")
+
+    runner = Runner(spark, config_path="tests/runner/transformations/config.yaml")
+    assert runner.config.runner.bookkeeping == "some.test.location"
+
+
+def test_bookkeeping_inactive(spark, mocker):
+    mocker.patch("rialto.runner.runner.Runner._run_pipeline")
+
+    runner = Runner(spark, config_path="tests/runner/transformations/config2.yaml")
+    assert runner.config.runner.bookkeeping is None
