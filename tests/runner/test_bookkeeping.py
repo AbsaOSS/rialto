@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from rialto.runner.date_manager import DateManager
 from rialto.runner.record import Record
@@ -11,6 +11,8 @@ record = Record(
     1,
     "status",
     "reason",
+    None,
+    datetime(2024, 1, 1, 1, 2, 3),
 )
 
 
@@ -24,3 +26,4 @@ def test_record_to_spark(spark):
     assert row.status == "status"
     assert row.reason == "reason"
     assert row.exception is None
+    assert row.run_timestamp == datetime(2024, 1, 1, 1, 2, 3)

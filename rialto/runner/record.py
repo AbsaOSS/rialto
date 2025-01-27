@@ -16,10 +16,17 @@ __all__ = ["Record"]
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import ClassVar, Optional
+from typing import Optional
 
 from pyspark.sql import Row
-from pyspark.sql.types import DateType, IntegerType, StringType, StructField, StructType
+from pyspark.sql.types import (
+    DateType,
+    IntegerType,
+    StringType,
+    StructField,
+    StructType,
+    TimestampType,
+)
 
 
 @dataclass
@@ -34,19 +41,23 @@ class Record:
     status: str
     reason: str
     exception: Optional[str] = None
+    run_timestamp: datetime.timestamp = datetime.now().isoformat(sep=" ", timespec="seconds")
 
-    schema: ClassVar[StructType] = StructType(
-        [
-            StructField("job", StringType(), nullable=False),
-            StructField("target", StringType(), nullable=False),
-            StructField("date", DateType(), nullable=False),
-            StructField("time", StringType(), nullable=False),
-            StructField("records", IntegerType(), nullable=False),
-            StructField("status", StringType(), nullable=False),
-            StructField("reason", StringType(), nullable=False),
-            StructField("exception", StringType(), nullable=True),
-        ]
-    )
+    def get_schema(self) -> StructType:
+        """Retrieve schema of pyspark DataFrame"""
+        return StructType(
+            [
+                StructField("job", StringType(), nullable=False),
+                StructField("target", StringType(), nullable=False),
+                StructField("date", DateType(), nullable=False),
+                StructField("time", StringType(), nullable=False),
+                StructField("records", IntegerType(), nullable=False),
+                StructField("status", StringType(), nullable=False),
+                StructField("reason", StringType(), nullable=False),
+                StructField("exception", StringType(), nullable=True),
+                StructField("run_timestamp", TimestampType(), nullable=False),
+            ]
+        )
 
     def to_spark_row(self) -> Row:
         """Convert Record to Spark Row"""
@@ -59,4 +70,5 @@ class Record:
             status=self.status,
             reason=self.reason,
             exception=self.exception,
+            run_timestamp=self.run_timestamp,
         )
