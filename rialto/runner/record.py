@@ -70,5 +70,5 @@ class Record:
             status=self.status,
             reason=self.reason,
             exception=self.exception,
-            run_at=self.run_timestamp,
+            run_timestamp=self.run_timestamp,
         )
