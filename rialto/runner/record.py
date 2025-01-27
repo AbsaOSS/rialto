@@ -55,7 +55,7 @@ class Record:
                 StructField("status", StringType(), nullable=False),
                 StructField("reason", StringType(), nullable=False),
                 StructField("exception", StringType(), nullable=True),
-                StructField("run_at", TimestampType(), nullable=False),
+                StructField("run_timestamp", TimestampType(), nullable=False),
             ]
         )
 
