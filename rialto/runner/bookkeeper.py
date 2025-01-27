@@ -38,7 +38,7 @@ class BookKeeper:
 
         :param record: Record to add to the table.
         """
-        new = self.spark.createDataFrame([record.to_spark_row()], Record.get_schema())
+        new = self.spark.createDataFrame([record.to_spark_row()], record.get_schema())
         db = self._load()
         if db:
             db = db.unionByName(new)
