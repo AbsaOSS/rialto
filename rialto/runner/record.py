@@ -41,7 +41,7 @@ class Record:
     status: str
     reason: str
     exception: Optional[str] = None
-    run_timestamp: datetime.timestamp = datetime.now().isoformat(sep=" ", timespec="seconds")
+    run_timestamp: datetime.timestamp = datetime.now()
 
     def get_schema(self) -> StructType:
         """Retrieve schema of pyspark DataFrame"""
