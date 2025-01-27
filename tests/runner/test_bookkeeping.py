@@ -26,4 +26,4 @@ def test_record_to_spark(spark):
     assert row.status == "status"
     assert row.reason == "reason"
     assert row.exception is None
-    assert row.run_at == datetime(2024, 1, 1, 1, 2, 3)
+    assert row.run_timestamp == datetime(2024, 1, 1, 1, 2, 3)
