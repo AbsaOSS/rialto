@@ -12,24 +12,29 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from importlib import import_module
+import importlib
+from unittest.mock import patch
 
-from rialto.jobs.job_base import JobBase
+import pyspark.sql.functions as F
+
+import tests.jobs.test_job.test_job as tj
+from rialto.jobs.decorators import _get_job_metadata
+from rialto.jobs.job_base import JobBase, JobMetadata
 from rialto.jobs.module_register import ModuleRegister
 
 
 def test_dataset_decorator():
-    _ = import_module("tests.jobs.test_job.test_job")
+    _ = importlib.import_module("tests.jobs.test_job.test_job")
     assert ModuleRegister.find_callable("dataset", "tests.jobs.test_job.test_job") is not None
 
 
 def test_config_decorator():
-    _ = import_module("tests.jobs.test_job.test_job")
+    _ = importlib.import_module("tests.jobs.test_job.test_job")
     assert ModuleRegister.find_callable("custom_config", "tests.jobs.test_job.test_job") is not None
 
 
 def _rialto_import_stub(module_name, class_name):
-    module = import_module(module_name)
+    module = importlib.import_module(module_name)
     class_obj = getattr(module, class_name)
     return class_obj()
 
@@ -45,11 +50,34 @@ def test_job_function_callables_filled():
     custom_callable = result_class.get_custom_callable()
     assert custom_callable() == "job_function_return"
 
-    version = result_class.get_job_version()
-    assert version == "N/A"
+    metadata = result_class.get_job_metadata()
+    assert metadata.dist_version == "N/A"
 
     job_name = result_class.get_job_name()
     assert job_name == "job_function"
+
+
+def test_get_metadata():
+    lib_metadata = _get_job_metadata(F)
+    assert lib_metadata.dist_name == "pyspark"
+    assert lib_metadata.dist_version is not None
+    assert lib_metadata.dist_version != "N/A"
+
+
+def test_job_metadata_filled():
+    with patch("rialto.jobs.decorators._get_job_metadata") as mock:
+        mock.return_value = JobMetadata(job_name="job_name", dist_name="job_function", dist_version="1.0.0")
+
+        ModuleRegister.remove_module(tj)
+        importlib.reload(tj)
+
+        result_class = _rialto_import_stub("tests.jobs.test_job.test_job", "job_function")
+
+    metadata = result_class.get_job_metadata()
+    assert metadata.dist_version == "1.0.0"
+
+    ModuleRegister.remove_module(tj)
+    importlib.reload(tj)
 
 
 def test_custom_name_function():
@@ -67,8 +95,8 @@ def test_job_disabling_version():
     result_class = _rialto_import_stub("tests.jobs.test_job.test_job", "disable_version_job_function")
     assert issubclass(type(result_class), JobBase)
 
-    job_version = result_class.get_job_version()
-    assert job_version is None
+    job_version = result_class.get_disable_version()
+    assert job_version == True
 
 
 def test_job_dependencies_registered(spark):
