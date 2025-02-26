@@ -362,6 +362,7 @@ We have a set of pre-defined dependencies:
 * **spark** contains the *spark session*
 * **config** returns the custom config you can specify with each job run
 * **dependencies** returns a dictionary containing the job dependencies config
+* **job_metadata** returns *JobMetadata* containing information about the job package
 * **table_reader** returns *TableReader*
 * **feature_loader** provides *PysparkFeatureLoader*
 * **metadata_manager** provides *MetadataManager*
