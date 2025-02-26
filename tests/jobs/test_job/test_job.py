@@ -45,10 +45,12 @@ def disable_version_job_function():
 
 
 @job
-def job_asking_for_all_deps(spark, run_date, config, table_reader, metadata_manager, feature_loader):
+def job_asking_for_all_deps(spark, run_date, config, job_metadata, table_reader, metadata_manager, feature_loader):
     assert spark is not None
     assert run_date == 456
     assert config == 123
     assert table_reader == 789
     assert metadata_manager == 654
     assert feature_loader == 321
+    assert job_metadata is not None
+    assert job_metadata.dist_version == "N/A"

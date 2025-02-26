@@ -50,7 +50,7 @@ def test_no_return_vaue_adds_version_timestamp_dataframe(spark):
 
     assert type(result) is pyspark.sql.DataFrame
     assert result.columns == ["JOB_NAME", "CREATION_TIME", "VERSION"]
-    assert result.first()["VERSION"] == "job_version"
+    assert result.first()["VERSION"] == "1.0.0"
     assert result.count() == 1
 
 
@@ -62,7 +62,7 @@ def test_return_dataframe_forwarded_with_version(spark):
 
     assert type(result) is pyspark.sql.DataFrame
     assert result.columns == ["FIRST", "SECOND", "VERSION"]
-    assert result.first()["VERSION"] == "job_version"
+    assert result.first()["VERSION"] == "1.0.0"
     assert result.count() == 2
 
 

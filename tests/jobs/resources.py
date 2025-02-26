@@ -15,7 +15,7 @@ import typing
 
 import pandas as pd
 
-from rialto.jobs.job_base import JobBase
+from rialto.jobs.job_base import JobBase, JobMetadata
 from rialto.jobs.resolver import Resolver
 
 
@@ -34,8 +34,11 @@ class CustomJobNoReturnVal(JobBase):
     def get_job_name(self) -> str:
         return "job_name"
 
-    def get_job_version(self) -> str:
-        return "job_version"
+    def get_job_metadata(self) -> str:
+        return JobMetadata(job_name="job_name", dist_name="job_function", dist_version="1.0.0")
+
+    def get_disable_version(self) -> bool:
+        return False
 
     def get_custom_callable(self) -> typing.Callable:
         return custom_callable
@@ -52,8 +55,8 @@ class CustomJobReturnsDataFrame(CustomJobNoReturnVal):
 
 
 class CustomJobNoVersion(CustomJobNoReturnVal):
-    def get_job_version(self) -> str:
-        return None
+    def get_disable_version(self) -> bool:
+        return True
 
 
 def CustomJobAssertResolverSetup(CustomJobNoReturnVal):
