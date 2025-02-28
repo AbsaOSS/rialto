@@ -20,7 +20,7 @@ import importlib_metadata
 from loguru import logger
 
 from rialto.common.utils import get_caller_module
-from rialto.jobs.job_base import JobBase
+from rialto.jobs.job_base import JobBase, JobMetadata
 from rialto.jobs.module_register import ModuleRegister
 
 
@@ -52,25 +52,30 @@ def datasource(ds_getter: typing.Callable) -> typing.Callable:
     return ds_getter
 
 
-def _get_version(module: typing.Any) -> str:
+def _get_job_metadata(module: typing.Any) -> JobMetadata:
     try:
         package_name, _, _ = module.__name__.partition(".")
         dist_name = importlib_metadata.packages_distributions()[package_name][0]
-        return importlib_metadata.version(dist_name)
+        dist_version = importlib_metadata.version(dist_name)
+
+        return JobMetadata(job_name=module.__name__, dist_name=dist_name, dist_version=dist_version)
 
     except Exception:
         logger.warning(f"Failed to get version of {module.__name__}! Will use N/A")
-        return "N/A"
+        return JobMetadata(job_name=module.__name__, dist_name="N/A", dist_version="N/A")
 
 
-def _generate_rialto_job(callable: typing.Callable, module: object, class_name: str, version: str) -> typing.Type:
+def _generate_rialto_job(
+    callable: typing.Callable, module: object, class_name: str, metadata: JobMetadata, disable_version: bool
+) -> typing.Type:
     generated_class = type(
         class_name,
         (JobBase,),
         {
             "get_custom_callable": lambda _: callable,
-            "get_job_version": lambda _: version,
+            "get_job_metadata": lambda _: metadata,
             "get_job_name": lambda _: class_name,
+            "get_disable_version": lambda _: disable_version,
         },
     )
 
@@ -97,27 +102,26 @@ def job(*args, custom_name=None, disable_version=False):
              Otherwise, generates Rialto Transformation Type and returns it for in-module registration.
     """
     module = get_caller_module()
-    version = _get_version(module)
+    metadata = _get_job_metadata(module)
 
     # Use case where it's just raw @f. Otherwise, we get [] here.
     if len(args) == 1 and callable(args[0]):
         f = args[0]
-        return _generate_rialto_job(callable=f, module=module, class_name=f.__name__, version=version)
+        return _generate_rialto_job(
+            callable=f, module=module, class_name=f.__name__, metadata=metadata, disable_version=disable_version
+        )
 
     # If custom args are specified, we need to return one more wrapper
     def inner_wrapper(f):
         # Setting default custom name, in case user only disables version
         class_name = f.__name__
-        nullable_version = version
 
         # User - Specified custom name
         if custom_name is not None:
             class_name = custom_name
 
-        # Setting version to None causes JobBase to not fill it
-        if disable_version:
-            nullable_version = None
-
-        return _generate_rialto_job(callable=f, module=module, class_name=class_name, version=nullable_version)
+        return _generate_rialto_job(
+            callable=f, module=module, class_name=class_name, metadata=metadata, disable_version=disable_version
+        )
 
     return inner_wrapper

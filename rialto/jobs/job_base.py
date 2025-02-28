@@ -20,6 +20,7 @@ import typing
 
 import pyspark.sql.functions as F
 from loguru import logger
+from pydantic import BaseModel
 from pyspark.sql import DataFrame, SparkSession
 
 from rialto.common import TableReader
@@ -28,6 +29,12 @@ from rialto.loader import PysparkFeatureLoader
 from rialto.metadata import MetadataManager
 from rialto.runner import Transformation
 from rialto.runner.config_loader import PipelineConfig
+
+
+class JobMetadata(BaseModel):
+    job_name: str
+    dist_name: str
+    dist_version: str
 
 
 class JobBase(Transformation):
@@ -39,13 +46,18 @@ class JobBase(Transformation):
         pass
 
     @abc.abstractmethod
-    def get_job_version(self) -> str:
-        """Job version getter"""
+    def get_job_metadata(self) -> JobMetadata:
+        """Job metadata getter"""
         pass
 
     @abc.abstractmethod
     def get_job_name(self) -> str:
         """Job name getter"""
+        pass
+
+    @abc.abstractmethod
+    def get_disable_version(self) -> bool:
+        """Disable version getter"""
         pass
 
     def _get_resolver(
@@ -63,6 +75,7 @@ class JobBase(Transformation):
         resolver.register_object(spark, "spark")
         resolver.register_object(run_date, "run_date")
         resolver.register_object(config, "config")
+        resolver.register_object(self.get_job_metadata(), "job_metadata")
         resolver.register_object(table_reader, "table_reader")
 
         # Optionals
@@ -80,12 +93,8 @@ class JobBase(Transformation):
         )
 
     def _add_job_version(self, df: DataFrame) -> DataFrame:
-        version = self.get_job_version()
-
-        if version is not None:
-            return df.withColumn("VERSION", F.lit(version))
-
-        return df
+        version = self.get_job_metadata().dist_version
+        return df.withColumn("VERSION", F.lit(version))
 
     def run(
         self,
@@ -114,8 +123,10 @@ class JobBase(Transformation):
             if raw_result is None:
                 raw_result = self._get_timestamp_holder_result(spark)
 
-            result_with_version = self._add_job_version(raw_result)
-            return result_with_version
+            if not self.get_disable_version():
+                return self._add_job_version(raw_result)
+
+            return raw_result
 
         except Exception as e:
             logger.exception(e)
