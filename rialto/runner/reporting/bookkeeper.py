@@ -13,7 +13,7 @@
 #  limitations under the License.
 from pyspark.sql import DataFrame, SparkSession
 
-from rialto.runner.record import Record
+from rialto.runner.reporting.record import Record
 
 
 class BookKeeper:

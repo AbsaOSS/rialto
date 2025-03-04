@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
 
+from reporting.record import Record
+
 from rialto.runner.date_manager import DateManager
-from rialto.runner.record import Record
 
 record = Record(
     "job",
