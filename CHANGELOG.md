@@ -1,10 +1,14 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 2.0.7
+  ### Runner
+  - email reporting is now optional
+
 ## 2.0.6 - 2025-02-26
   ### Job Metadata
   - @jobs can now request job_metadata
-  - job_metadata contains 
+  - job_metadata contains
     - name of the job (e.g. model predict)
     - information about the job package: distribution_name and version (e.g. test-model, v 0.2.1)
 
