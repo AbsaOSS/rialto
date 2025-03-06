@@ -68,7 +68,7 @@ Transformations are not included in the runner itself, it imports them dynamical
 runner:
   watched_period_units: "months" # unit of default run period
   watched_period_value: 2 # value of default run period
-  mail:
+  mail: # optional email reporting configuration
     to: # a list of email addresses
       - name@host.domain
       - name2@host.domain
