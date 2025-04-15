@@ -1,9 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
-## 2.0.7
+## 2.0.7 - 2025-04-15
   ### Runner
   - email reporting is now optional
+  - refactored BookKeeper methods
+    - bookkeeping table is no longer being overwritten, new records are appended instead
 
 ## 2.0.6 - 2025-02-26
   ### Job Metadata
