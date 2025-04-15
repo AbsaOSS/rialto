@@ -58,7 +58,7 @@ class MailConfig(BaseModel):
 class RunnerConfig(BaseModel):
     watched_period_units: str
     watched_period_value: int
-    mail: MailConfig
+    mail: Optional[MailConfig] = None
     bookkeeping: Optional[str] = None
 
 

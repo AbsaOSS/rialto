@@ -26,9 +26,9 @@ import rialto.runner.utils as utils
 from rialto.common import TableReader
 from rialto.runner.config_loader import PipelineConfig, get_pipelines_config
 from rialto.runner.date_manager import DateManager
-from rialto.runner.record import Record
+from rialto.runner.reporting.record import Record
+from rialto.runner.reporting.tracker import Tracker
 from rialto.runner.table import Table
-from rialto.runner.tracker import Tracker
 from rialto.runner.transformation import Transformation
 
 
