@@ -23,14 +23,11 @@ class BookKeeper:
         self.spark = spark
         self.table = table
 
-    def _load(self) -> DataFrame | None:
-        if self.spark.catalog.tableExists(self.table):
-            return self.spark.read.table(self.table)
-        else:
-            return None
-
     def _write(self, df: DataFrame) -> None:
-        df.write.mode("overwrite").saveAsTable(self.table)
+        if self.spark.catalog.tableExists(self.table):
+            df.write.mode("append").saveAsTable(self.table)
+        else:
+            df.write.mode("overwrite").saveAsTable(self.table)
 
     def add(self, record: Record) -> None:
         """
@@ -39,9 +36,5 @@ class BookKeeper:
         :param record: Record to add to the table.
         """
         new = self.spark.createDataFrame([record.to_spark_row()], record.get_schema())
-        db = self._load()
-        if db:
-            db = db.unionByName(new)
-            self._write(db)
-        else:
-            self._write(new)
+
+        self._write(new)
