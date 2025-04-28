@@ -18,10 +18,10 @@ from datetime import datetime
 
 from pyspark.sql import SparkSession
 
-from rialto.runner.bookkeeper import BookKeeper
 from rialto.runner.config_loader import MailConfig
-from rialto.runner.mailer import HTMLMessage, Mailer
-from rialto.runner.record import Record
+from rialto.runner.reporting.bookkeeper import BookKeeper
+from rialto.runner.reporting.mailer import HTMLMessage, Mailer
+from rialto.runner.reporting.record import Record
 
 
 class Tracker:
@@ -46,6 +46,8 @@ class Tracker:
 
     def report_by_mail(self):
         """Create and send html report"""
+        if self.mail_cfg is None:
+            return
         if len(self.records) or self.mail_cfg.sent_empty:
             report = HTMLMessage.make_report(self.pipeline_start, self.records)
             for receiver in self.mail_cfg.to:

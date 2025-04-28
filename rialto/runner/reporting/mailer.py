@@ -18,7 +18,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import List
 
-from rialto.runner.record import Record
+from rialto.runner.reporting.record import Record
 
 __all__ = ["Mailer"]
 
@@ -83,7 +83,7 @@ class HTMLMessage:
             <div align="center">
                 <table {HTMLMessage.borderless_table}>
                     <tr>
-                        <td align="center"><h3>This is is Rialto Feature Runner report<h3></td>
+                        <td align="center"><h3>This is a Rialto report<h3></td>
                     </tr>
                     <tr>
                         <td align="center">
