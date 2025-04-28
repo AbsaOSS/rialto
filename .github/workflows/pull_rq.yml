@@ -9,7 +9,7 @@ env:
 
 jobs:
   run-tests:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Rialto
         uses: actions/checkout@v3
