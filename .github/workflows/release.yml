@@ -15,7 +15,7 @@ jobs:
       url: https://pypi.org/p/rialto
     permissions:
       id-token: write
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Rialto
         uses: actions/checkout@v3
