@@ -258,7 +258,7 @@ class Runner:
                 )
             except Exception as error:
                 logger.error(f"An exception occurred in pipeline {pipeline.name}")
-                logger.error(error)
+                logger.exception(error)
                 self.tracker.add(
                     Record(
                         job=pipeline.name,

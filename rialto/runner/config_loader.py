@@ -18,36 +18,40 @@ __all__ = [
 
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from rialto.common.utils import load_yaml
 from rialto.runner.config_overrides import override_config
 
 
-class IntervalConfig(BaseModel):
+class BaseConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class IntervalConfig(BaseConfig):
     units: str
     value: int
 
 
-class ScheduleConfig(BaseModel):
+class ScheduleConfig(BaseConfig):
     frequency: str
     day: Optional[int] = 0
     info_date_shift: Optional[List[IntervalConfig]] = IntervalConfig(units="days", value=0)
 
 
-class DependencyConfig(BaseModel):
+class DependencyConfig(BaseConfig):
     table: str
     name: Optional[str] = None
     date_col: str
     interval: IntervalConfig
 
 
-class ModuleConfig(BaseModel):
+class ModuleConfig(BaseConfig):
     python_module: str
     python_class: str
 
 
-class MailConfig(BaseModel):
+class MailConfig(BaseConfig):
     sender: str
     to: List[str]
     smtp: str
@@ -55,28 +59,28 @@ class MailConfig(BaseModel):
     sent_empty: Optional[bool] = False
 
 
-class RunnerConfig(BaseModel):
+class RunnerConfig(BaseConfig):
     watched_period_units: str
     watched_period_value: int
     mail: Optional[MailConfig] = None
     bookkeeping: Optional[str] = None
 
 
-class TargetConfig(BaseModel):
+class TargetConfig(BaseConfig):
     target_schema: str
     target_partition_column: str
 
 
-class MetadataManagerConfig(BaseModel):
+class MetadataManagerConfig(BaseConfig):
     metadata_schema: str
 
 
-class FeatureLoaderConfig(BaseModel):
+class FeatureLoaderConfig(BaseConfig):
     feature_schema: str
     metadata_schema: str
 
 
-class PipelineConfig(BaseModel):
+class PipelineConfig(BaseConfig):
     name: str
     module: ModuleConfig
     schedule: ScheduleConfig
@@ -87,7 +91,7 @@ class PipelineConfig(BaseModel):
     extras: Optional[Dict] = {}
 
 
-class PipelinesConfig(BaseModel):
+class PipelinesConfig(BaseConfig):
     runner: RunnerConfig
     pipelines: list[PipelineConfig]
 

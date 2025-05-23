@@ -12,6 +12,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 import pytest
+from pydantic import ValidationError
 
 from rialto.runner import Runner
 
@@ -91,7 +92,7 @@ def test_invalid_index_key(spark):
             run_date="2023-03-31",
             overrides={"runner.mail.test[8]": "test"},
         )
-    assert error.value.args[0] == "Invalid key test"
+    assert error.value.args[0] == "Invalid key: test"
 
 
 def test_invalid_key(spark):
@@ -102,7 +103,17 @@ def test_invalid_key(spark):
             run_date="2023-03-31",
             overrides={"runner.mail.test.param": "test"},
         )
-    assert error.value.args[0] == "Invalid key test"
+    assert error.value.args[0] == "Invalid key: test"
+
+
+def test_new_key(spark):
+    with pytest.raises(ValidationError):
+        Runner(
+            spark,
+            config_path="tests/runner/overrider.yaml",
+            run_date="2023-03-31",
+            overrides={"runner.some_value": 5},
+        )
 
 
 def test_replace_section(spark):
@@ -112,7 +123,6 @@ def test_replace_section(spark):
         run_date="2023-03-31",
         overrides={
             "pipelines[name=SimpleGroup].feature_loader": {
-                "config_path": "features_cfg.yaml",
                 "feature_schema": "catalog.features",
                 "metadata_schema": "catalog.metadata",
             }
@@ -128,7 +138,6 @@ def test_add_section(spark):
         run_date="2023-03-31",
         overrides={
             "pipelines[name=OtherGroup].feature_loader": {
-                "config_path": "features_cfg.yaml",
                 "feature_schema": "catalog.features",
                 "metadata_schema": "catalog.metadata",
             }

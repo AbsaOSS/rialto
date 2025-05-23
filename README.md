@@ -106,7 +106,6 @@ pipelines: # a list of pipelines to run
   metadata_manager: # optional
       metadata_schema: catalog.metadata # schema where metadata is stored
   feature_loader: # optional
-      config_path: model_features_config.yaml # path to the feature loader configuration file
       feature_schema: catalog.feature_tables # schema where feature tables are stored
       metadata_schema: catalog.metadata # schema where metadata is stored
   extras: #optional arguments processed as dictionary
@@ -171,23 +170,21 @@ overrides={"pipelines[name=SimpleGroup].target.target_schema": "new_schema"},
 #### Injecting/Replacing whole sections
 You can directly replace a bigger section of the configuration by providing a dictionary
 When the whole section doesn't exist, it will be added to the configuration, however it needs to be added as a whole.
-i.e. if the yaml file doesn't specify feature_loader, you can't just add a feature_loader.config_path, you need to add the whole section.
+i.e. if the yaml file doesn't specify feature_loader, you can't just add a feature_loader.feature_schema, you need to add the whole section.
 ```python
 overrides={"pipelines[name=SimpleGroup].feature_loader":
-                           {"config_path": "features_cfg.yaml",
-                            "feature_schema": "catalog.features",
+                           {"feature_schema": "catalog.features",
                             "metadata_schema": "catalog.metadata"}}
 ```
 
 #### Multiple overrides
 You can provide multiple overrides at once, the order of execution is not guaranteed
 ```python
-overrides={"runner.watch_period_value": 4,
-           "runner.watch_period_units": "weeks",
+overrides={"runner.watched_period_value": 4,
+           "runner.watched_period_units": "weeks",
            "pipelines[name=SimpleGroup].target.target_schema": "new_schema",
            "pipelines[name=SimpleGroup].feature_loader":
-                           {"config_path": "features_cfg.yaml",
-                            "feature_schema": "catalog.features",
+                           {"feature_schema": "catalog.features",
                             "metadata_schema": "catalog.metadata"}
            }
 ```
