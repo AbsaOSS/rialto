@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "rialto"
 
-version = "2.0.7"
+version = "2.0.8"
 
 packages = [
     { include = "rialto" },
@@ -54,7 +54,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length = 120
-target-version = ["py36"]
+target-version = ["py310"]
 
 [tool.isort]
 profile = "black"
