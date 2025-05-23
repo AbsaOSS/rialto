@@ -32,6 +32,7 @@ class GroupMetadata:
     frequency: Schedule
     description: str
     key: List[str]
+    owner: str
     fs_name: str = None
     features: List[str] = None
 
@@ -42,7 +43,7 @@ class GroupMetadata:
             f"name={self.name!r}, frequency={self.frequency!r}, "
             f"feature store name={self.fs_name!r},"
             f"description={self.description!r}, key={self.key!r}, "
-            f"features={self.features!r}"
+            f"features={self.features!r}, owner={self.owner!r}"
             ")"
         )
 
@@ -65,7 +66,7 @@ class GroupMetadata:
         """
         if not self.fs_name:
             self.fs_name = class_to_catalog_name(self.name)
-        return (self.name, self.frequency.value, self.description, self.key, self.fs_name)
+        return (self.name, self.frequency.value, self.description, self.key, self.fs_name, self.owner)
 
     @classmethod
     def from_spark(cls, schema: Row) -> Self:
@@ -81,4 +82,5 @@ class GroupMetadata:
             frequency=Schedule[schema.group_frequency],
             description=schema.group_description,
             key=schema.group_key,
+            owner=schema.group_owner
         )
