@@ -627,6 +627,7 @@ GroupMetadata
     frequency: Schedule # generation frequency
     description: str # group description
     key: List[str] # group primary keys
+    owner: str # owner of the group data (table)
     fs_name: str = None # actual table name of this feature group in DataBricks
     features: List[str] = None # A list of feature names belonging to this group
 ```

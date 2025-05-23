@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
   ### Runner
   - expanded config overrides logging
   - added config validation
+  - added owner attribute to GroupMetadata class
 
 ## 2.0.7 - 2025-04-15
   ### Runner
