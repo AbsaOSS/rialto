@@ -35,7 +35,7 @@ def _override(config, path, value) -> Dict:
     if "[" in key:
         name, index = _split_index_key(key)
         if name not in config:
-            raise ValueError(f"Invalid key {name}")
+            raise ValueError(f"Invalid key: {name}")
         if "=" in index:
             index = _find_first_match(config[name], index)
         else:
@@ -54,10 +54,12 @@ def _override(config, path, value) -> Dict:
             raise IndexError(f"Index {index} out of bounds for key {key}")
     else:
         if len(path) == 1:
+            if key not in config:
+                logger.warning(f"Adding new key: {key} with value {value}")
             config[key] = value
         else:
             if key not in config:
-                raise ValueError(f"Invalid key {key}")
+                raise ValueError(f"Invalid key: {key}")
             config[key] = _override(config[key], path[1:], value)
     return config
 
@@ -70,7 +72,7 @@ def override_config(config: Dict, overrides: Dict) -> Dict:
     :return: Overridden config
     """
     for path, value in overrides.items():
-        logger.info("Applying override: ", path, value)
+        logger.info(f"Applying override:\npath: {path}\nvalue: {value}")
         config = _override(config, path.split("."), value)
 
     return config

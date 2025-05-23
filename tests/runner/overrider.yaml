@@ -50,7 +50,6 @@ pipelines:
       target_schema: catalog.schema
       target_partition_column: "INFORMATION_DATE"
     feature_loader:
-      config_path: path/to/config.yaml
       feature_schema: catalog.feature_tables
       metadata_schema: catalog.metadata
     metadata_manager:
