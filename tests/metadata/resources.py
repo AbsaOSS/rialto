@@ -22,6 +22,7 @@ group_schema = StructType(
         StructField("group_description", StringType(), False),
         StructField("group_key", ArrayType(StringType(), True), False),
         StructField("group_fs_name", StringType(), False),
+        StructField("group_owner", StringType(), False),
     ]
 )
 
@@ -35,8 +36,8 @@ feature_schema = StructType(
 )
 
 group_base = [
-    ("Group1", "weekly", "group1", ["key1"], "group_1"),
-    ("Group2", "monthly", "group2", ["key2", "key3"], "group_2"),
+    ("Group1", "weekly", "group1", ["key1"], "group_1", "owner_1"),
+    ("Group2", "monthly", "group2", ["key2", "key3"], "group_2", "owner_2"),
 ]
 
 feature_base = [
@@ -50,6 +51,7 @@ group_md1 = GroupMetadata(
     frequency=Schedule.weekly,
     description="group1",
     key=["key1"],
+    owner="owner_1",
 )
 
 group_md2 = GroupMetadata(
@@ -58,6 +60,7 @@ group_md2 = GroupMetadata(
     frequency=Schedule.monthly,
     description="group2",
     key=["key2", "key3"],
+    owner="owner_2",
     features=["Feature1", "Feature2"],
 )
 
