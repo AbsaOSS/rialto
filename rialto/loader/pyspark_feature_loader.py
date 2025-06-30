@@ -16,7 +16,7 @@ __all__ = ["PysparkFeatureLoader"]
 
 from collections import namedtuple
 from datetime import date
-from typing import Dict, List
+from typing import Dict, List, Union
 
 from pyspark.sql import DataFrame, SparkSession
 
@@ -37,7 +37,7 @@ class PysparkFeatureLoader(FeatureLoaderInterface):
     def __init__(
         self,
         spark: SparkSession,
-        feature_schema: str,
+        feature_schema: Union[str, List[str]],
         metadata_schema: str,
         date_column: str = "INFORMATION_DATE",
     ):
@@ -51,7 +51,11 @@ class PysparkFeatureLoader(FeatureLoaderInterface):
         super().__init__()
         self.spark = spark
         self.reader = TableReader(spark)
-        self.feature_schema = feature_schema
+
+        if isinstance(feature_schema, str):
+            feature_schema = [feature_schema]
+
+        self.feature_schemas = feature_schema
         self.date_col = date_column
         self.metadata = MetadataManager(spark, metadata_schema)
 
@@ -65,12 +69,23 @@ class PysparkFeatureLoader(FeatureLoaderInterface):
         :param information_date: partition date
         :return: dataframe
         """
-        return self.reader.get_latest(
-            f"{self.feature_schema}.{group}",
-            date_until=information_date,
-            date_column=self.date_col,
-            uppercase_columns=True,
-        )
+        selected = []
+
+        for schema in self.feature_schemas:
+            tables = self.spark.catalog.listTables(schema)
+            if any(table.name == group for table in tables):
+                selected.append(schema)
+        if len(selected) > 1:
+            raise ValueError(f"Multiple feature schemas contain table {group}: {selected}.")
+        elif len(selected) == 0:
+            raise ValueError(f"Feature group {group} not found in schemas {self.feature_schemas}.")
+        else:
+            return self.reader.get_latest(
+                f"{selected[0]}.{group}",
+                date_until=information_date,
+                date_column=self.date_col,
+                uppercase_columns=True,
+            )
 
     def get_feature(self, group_name: str, feature_name: str, information_date: date) -> DataFrame:
         """
@@ -119,12 +134,12 @@ class PysparkFeatureLoader(FeatureLoaderInterface):
         """
         Return groups file system name
 
-        If given name matches databricks path, i.e. has two dot separators, do nothing.
+        If the name is already lowercase, assume it's a filesystem name.
         Else assume it's a class name and search for fs name in metadata.
         :param group_name: Group name
         :return: group filesystem name
         """
-        if len(group_name.split(sep=".")) == 3:
+        if group_name.islower():
             return group_name
         return self.metadata.get_group(group_name).fs_name
 
