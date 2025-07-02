@@ -530,6 +530,15 @@ from rialto.loader import PysparkFeatureLoader
 feature_loader = PysparkFeatureLoader(spark= spark_instance, feature_schema="catalog.schema", metadata_schema= "catalog.schema2", date_column="information_date")
 ```
 
+Alternatively, you can specify multiple schemas for features, on the condition that each **feature group name is unique across all schemas**, and metadata for all groups in all the schemas is stored in the same metadata schema.
+This is intended to allow for a better organization of features inside one feature store catalog, not loading from multiple feature stores.
+
+```python
+from rialto.loader import PysparkFeatureLoader
+
+feature_loader = PysparkFeatureLoader(spark= spark_instance, feature_schema=["catalog.schema1", "catalog.schema2"], metadata_schema= "catalog.schema2", date_column="information_date")
+```
+
 #### Single feature
 
 ```python
@@ -578,18 +587,18 @@ The configuration file is expected to be in a yaml format and has 3 sections: se
 
 ```yaml
 selection:
-  - group: Group_A
+  - group: GroupA #alternativelly you can use "group_a" as present in unity catalog
     prefix: A_PREFIX
     features:
       - Feature_A1
       - Feature_A2
-  - group: Group_B
+  - group: GroupB
     prefix: B_PREFIX
     features:
       - Feature_B1
       - Feature_B2
 base:
-  group: Group_D
+  group: GroupD
   keys:
     - Column_Key1
     - Column_Key2
