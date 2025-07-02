@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
     - the features can now be split into multiple schemas (names of groups must remain unique across all schemas)
   - loader now also accepts storage table names interchangeably with feature group names
     - assumes that feature group names contain uppercase lettering
+  ### Runner
+  - runner no longer checks number of generated records before attempting to write them, instead it retrieves the information from storage
 
 ## 2.0.8 - 2025-05-15
   ### Runner
