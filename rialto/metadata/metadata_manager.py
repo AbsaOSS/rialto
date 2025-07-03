@@ -93,6 +93,30 @@ class MetadataManager:
         self._add_group(group_md)
         self._add_features(features_md, group_md.name)
 
+    def update_group(
+        self,
+        group_md: GroupMetadata,
+    ):
+        """
+        Save or refresh information about generated groups
+
+        :param group_md: GroupMetadata object
+        :return:
+        """
+        self._load_metadata()
+        self._add_group(group_md)
+
+    def update_features(self, features_md: List[FeatureMetadata], group_name: str):
+        """
+        Save or refresh information about generated features
+
+        :param features_md: list of FeatureMetadata objects
+        :param group_name: string name of feature group
+        :return:
+        """
+        self._load_metadata()
+        self._add_features(features_md, group_name)
+
     def get_feature(self, group_name: str, feature_name: str) -> FeatureMetadata:
         """
         Get metadata of one feature
