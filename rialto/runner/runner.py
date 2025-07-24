@@ -108,6 +108,18 @@ class Runner:
         df.write.partitionBy(table.partition).mode("overwrite").saveAsTable(table.get_table_path())
         logger.info(f"Results writen to {table.get_table_path()}")
 
+    def _check_written(self, info_date: date, table: Table) -> int:
+        """
+        Check if there are records written for given date
+
+        :param info_date: date to check
+        :param table: target table object
+        :return: number of records
+        """
+        df = self.spark.read.table(table.get_table_path())
+        df = df.filter(F.col(table.partition) == info_date)
+        return df.count()
+
     def check_dates_have_partition(self, table: Table, dates: List[date]) -> List[bool]:
         """
         For given list of dates, check if there is a matching partition for each
@@ -210,12 +222,12 @@ class Runner:
 
             feature_group = utils.load_module(pipeline.module)
             df = self._execute(feature_group, run_date, pipeline)
-            records = df.count()
-            if records > 0:
-                self._write(df, info_date, target)
-                return records
-            else:
+            self._write(df, info_date, target)
+            records = self._check_written(info_date, target)
+            if records == 0:
                 raise RuntimeError("No records generated")
+            else:
+                return records
         return 0
 
     def _run_pipeline(self, pipeline: PipelineConfig):
