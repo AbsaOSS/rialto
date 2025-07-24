@@ -1,7 +1,7 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
-## 2.0.9 - 2025-07-01
+## 2.0.9 - 2025-07-24
   ### Loader
   - PysparkFeatureLoader.feature_schema now also accepts a list of schemas
     - the features can now be split into multiple schemas (names of groups must remain unique across all schemas)
