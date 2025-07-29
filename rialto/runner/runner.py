@@ -91,7 +91,6 @@ class Runner:
             metadata_manager=metadata_manager,
             feature_loader=feature_loader,
         )
-        logger.info(f"Generated {df.count()} records")
 
         return df
 
@@ -224,6 +223,7 @@ class Runner:
             df = self._execute(feature_group, run_date, pipeline)
             self._write(df, info_date, target)
             records = self._check_written(info_date, target)
+            logger.info(f"Generated {records} records")
             if records == 0:
                 raise RuntimeError("No records generated")
             else:
