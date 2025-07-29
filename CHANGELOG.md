@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 2.0.10 - 2025-07-29
+  ### Runner
+  - removed unnecessary count() call from logger function
+  ### Jobs
+  - fixed module register with disable decorators not offloading dependencies
+
 ## 2.0.9 - 2025-07-24
   ### Loader
   - PysparkFeatureLoader.feature_schema now also accepts a list of schemas
