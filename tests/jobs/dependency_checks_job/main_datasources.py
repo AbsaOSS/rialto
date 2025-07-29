@@ -1,4 +1,7 @@
-from rialto.jobs import datasource
+import tests.jobs.dependency_checks_job.datasources_config as cfg
+from rialto.jobs import datasource, register_dependency_module
+
+register_dependency_module(cfg)
 
 
 @datasource
@@ -35,3 +38,8 @@ def circle_third(circle_first):
 @datasource
 def self_dependency(a, b, c, self_dependency):
     return a
+
+
+@datasource
+def dependency_with_config(a, b, my_config):
+    return a + b + my_config
