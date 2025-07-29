@@ -30,3 +30,8 @@ def default_dependency_job(run_date, spark, config, table_reader):
     assert spark is not None
     assert config is not None
     assert table_reader is not None
+
+
+@job
+def dependency_with_config_job(dependency_with_config):
+    assert dependency_with_config == 54  # 1 + 11 + 42

@@ -64,6 +64,7 @@ class ModuleRegister:
         :param module: The module to be removed.
         """
         cls._storage.pop(module.__name__, None)
+        cls._dependency_tree.pop(module.__name__, None)
 
     @classmethod
     def register_dependency(cls, module, parent_name):
