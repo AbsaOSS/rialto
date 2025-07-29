@@ -106,3 +106,12 @@ def test_duplicate_dependency_fails_on_duplicate(spark):
 
     assert exc_info is not None
     assert str(exc_info.value) == f"Multiple functions with the same name i found !"
+
+
+def test_resolver_with_disable_decorators(spark):
+    with disable_job_decorators(dependency_checks_job):
+        # Doesn't really matter what we call here, as long as it is a job
+        dependency_checks_job.dependency_with_config_job(54)
+
+    # Now, resolver should work as normal, as decorators are re-enabled and the module is reloaded
+    assert resolver_resolves(spark, dependency_checks_job.dependency_with_config_job)
