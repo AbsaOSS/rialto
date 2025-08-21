@@ -54,12 +54,23 @@ class PysparkFeatureLoader(FeatureLoaderInterface):
 
         if isinstance(feature_schema, str):
             feature_schema = [feature_schema]
+        self.feature_schemas = {}
+        for schema in feature_schema:
+            self.feature_schemas[schema] = None
 
-        self.feature_schemas = feature_schema
         self.date_col = date_column
         self.metadata = MetadataManager(spark, metadata_schema)
 
     KeyMap = namedtuple("KeyMap", ["df", "key"])
+
+    def fetch_schema_tables(self, schema) -> List[str]:
+        """
+        Fetch all tables in a schema
+
+        :param schema: schema name
+        :return: list of table names
+        """
+        return [table.name for table in self.spark.catalog.listTables(schema)]
 
     def read_group(self, group: str, information_date: date) -> DataFrame:
         """
@@ -69,12 +80,15 @@ class PysparkFeatureLoader(FeatureLoaderInterface):
         :param information_date: partition date
         :return: dataframe
         """
-        selected = []
+        for schema, tables in self.feature_schemas.items():
+            if tables is None:
+                self.feature_schemas[schema] = self.fetch_schema_tables(schema)
 
-        for schema in self.feature_schemas:
-            tables = self.spark.catalog.listTables(schema)
-            if any(table.name == group for table in tables):
+        selected = []
+        for schema, tables in self.feature_schemas.items():
+            if group in tables:
                 selected.append(schema)
+
         if len(selected) > 1:
             raise ValueError(f"Multiple feature schemas contain table {group}: {selected}.")
         elif len(selected) == 0:
