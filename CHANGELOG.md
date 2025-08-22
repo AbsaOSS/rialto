@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 2.0.11 - 2025-08-12
+  ### Loader
+  - optimized number of internal read operation when setting up PysparkFeatureLoader
+
 ## 2.0.10 - 2025-07-29
   ### Runner
   - removed unnecessary count() call from logger function
