@@ -18,6 +18,7 @@ from collections import namedtuple
 from datetime import date
 from typing import Dict, List, Union
 
+from loguru import logger
 from pyspark.sql import DataFrame, SparkSession
 
 from rialto.common import TableReader
@@ -70,6 +71,7 @@ class PysparkFeatureLoader(FeatureLoaderInterface):
         :param schema: schema name
         :return: list of table names
         """
+        logger.info(f"Fetching tables in schema {schema}")
         return [table.name for table in self.spark.catalog.listTables(schema)]
 
     def read_group(self, group: str, information_date: date) -> DataFrame:

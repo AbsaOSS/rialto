@@ -17,6 +17,7 @@ __all__ = ["MetadataManager"]
 from typing import List
 
 from delta.tables import DeltaTable
+from loguru import logger
 
 from rialto.metadata.data_classes.feature_metadata import FeatureMetadata
 from rialto.metadata.data_classes.group_metadata import GroupMetadata
@@ -38,11 +39,13 @@ class MetadataManager:
 
     def _load_metadata(self):
         if not self.loaded:
+            logger.info(f"Loading metadata from {self.groups_path} and {self.features_path}")
             self.groups = self.spark.read.table(self.groups_path).cache()
             self.features = self.spark.read.table(self.features_path).cache()
             self.loaded = True
 
     def _reload_metadata(self):
+        logger.info(f"Loading metadata from {self.groups_path} and {self.features_path}")
         self.groups.unpersist()
         self.groups = self.spark.read.table(self.groups_path).cache()
 
