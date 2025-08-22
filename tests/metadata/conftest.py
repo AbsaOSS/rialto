@@ -53,4 +53,5 @@ def mdc(spark):
     mdc = MetadataManager(spark)
     mdc.groups = spark.createDataFrame(group_base, group_schema)
     mdc.features = spark.createDataFrame(feature_base, feature_schema)
+    mdc.loaded = True
     return mdc

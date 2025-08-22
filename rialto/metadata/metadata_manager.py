@@ -17,6 +17,7 @@ __all__ = ["MetadataManager"]
 from typing import List
 
 from delta.tables import DeltaTable
+from loguru import logger
 
 from rialto.metadata.data_classes.feature_metadata import FeatureMetadata
 from rialto.metadata.data_classes.group_metadata import GroupMetadata
@@ -34,11 +35,22 @@ class MetadataManager:
         self.groups = None
         self.features = None
 
+        self.loaded = False
+
     def _load_metadata(self):
-        if self.groups is None:
-            self.groups = self.spark.read.table(self.groups_path)
-        if self.features is None:
-            self.features = self.spark.read.table(self.features_path)
+        if not self.loaded:
+            logger.info(f"Loading metadata from {self.groups_path} and {self.features_path}")
+            self.groups = self.spark.read.table(self.groups_path).cache()
+            self.features = self.spark.read.table(self.features_path).cache()
+            self.loaded = True
+
+    def _reload_metadata(self):
+        logger.info(f"Loading metadata from {self.groups_path} and {self.features_path}")
+        self.groups.unpersist()
+        self.groups = self.spark.read.table(self.groups_path).cache()
+
+        self.features.unpersist()
+        self.features = self.spark.read.table(self.features_path).cache()
 
     def _fetch_group_by_name(self, group_name: str) -> GroupMetadata:
         group = self.groups.filter(self.groups.group_name == group_name).collect()
@@ -92,6 +104,7 @@ class MetadataManager:
         self._load_metadata()
         self._add_group(group_md)
         self._add_features(features_md, group_md.name)
+        self._reload_metadata()
 
     def get_feature(self, group_name: str, feature_name: str) -> FeatureMetadata:
         """
