@@ -51,7 +51,6 @@ def test_job_function_callables_filled():
     assert custom_callable() == "job_function_return"
 
     metadata = result_class.get_job_metadata()
-    print(metadata)
     assert metadata.dist_version == "N/A"
 
     job_name = result_class.get_job_name()
