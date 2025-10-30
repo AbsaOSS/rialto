@@ -262,7 +262,7 @@ def test_op_selected(spark, mocker):
     runner = Runner(spark, config_path="tests/runner/transformations/config.yaml", op="SimpleGroup")
 
     runner()
-    run.called_once()
+    run.assert_called_once()
 
 
 def test_op_bad(spark, mocker):

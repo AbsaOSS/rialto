@@ -1,6 +1,14 @@
 rialto.runner package
 =====================
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   rialto.runner.reporting
+
 Submodules
 ----------
 
@@ -8,6 +16,14 @@ rialto.runner.config\_loader module
 -----------------------------------
 
 .. automodule:: rialto.runner.config_loader
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+rialto.runner.config\_overrides module
+--------------------------------------
+
+.. automodule:: rialto.runner.config_overrides
    :members:
    :undoc-members:
    :show-inheritance:
@@ -36,18 +52,18 @@ rialto.runner.table module
    :undoc-members:
    :show-inheritance:
 
-rialto.runner.tracker module
-----------------------------
-
-.. automodule:: rialto.runner.tracker
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 rialto.runner.transformation module
 -----------------------------------
 
 .. automodule:: rialto.runner.transformation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+rialto.runner.utils module
+-----------------------------------
+
+.. automodule:: rialto.runner.utils
    :members:
    :undoc-members:
    :show-inheritance:

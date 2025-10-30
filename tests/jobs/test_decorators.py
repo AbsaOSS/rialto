@@ -51,6 +51,7 @@ def test_job_function_callables_filled():
     assert custom_callable() == "job_function_return"
 
     metadata = result_class.get_job_metadata()
+    print(metadata)
     assert metadata.dist_version == "N/A"
 
     job_name = result_class.get_job_name()
@@ -96,7 +97,7 @@ def test_job_disabling_version():
     assert issubclass(type(result_class), JobBase)
 
     job_version = result_class.get_disable_version()
-    assert job_version == True
+    assert job_version is True
 
 
 def test_job_dependencies_registered(spark):
