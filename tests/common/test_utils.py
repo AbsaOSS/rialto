@@ -40,5 +40,5 @@ def test_cast_decimals_to_floats_topandas_works(sample_df):
     df_fixed = cast_decimals_to_floats(sample_df)
     df_pd = df_fixed.toPandas()
 
-    assert df_pd.dtypes[3] == dtype("float32")
-    assert df_pd.dtypes[4] == dtype("float32")
+    assert df_pd.dtypes.iloc[3] == dtype("float32")
+    assert df_pd.dtypes.iloc[4] == dtype("float32")

@@ -96,7 +96,7 @@ def test_job_disabling_version():
     assert issubclass(type(result_class), JobBase)
 
     job_version = result_class.get_disable_version()
-    assert job_version == True
+    assert job_version is True
 
 
 def test_job_dependencies_registered(spark):

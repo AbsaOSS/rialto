@@ -1,60 +1,74 @@
-[tool.poetry]
+[project]
 name = "rialto"
-
 version = "2.0.11"
-
-packages = [
-    { include = "rialto" },
+description = "Rialto is a framework for building and deploying machine learning features in a scalable and reusable way. It provides a set of tools that make it easy to define and deploy features and models, and it provides a way to orchestrate the execution of these features and models."
+authors = [
+    { name = "Marek Dobransky", email = "marekdobr@gmail.com" },
+    { name = "Vladislav Vancak", email = "vladislav.vancak@gmail.com" },
+]
+requires-python = ">=3.11, <4.0"
+readme = "README.md"
+keywords = [
+    "feature",
+    "featureslib",
+    "featuremaker",
+    "metadata",
+    "featureloader",
+    "loader",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
 ]
-description = "Rialto is a framework for building and deploying machine learning features in a scalable and reusable way. It provides a set of tools that make it easy to define and deploy features and models, and it provides a way to orchestrate the execution of these features and models."
-authors = ["Marek Dobransky <marekdobr@gmail.com>", "Vladislav Vancak <vladislav.vancak@gmail.com>"]
+dependencies = [
+    "pydantic>=2.12.3,<3",
+    "pathlib>=1.0.1,<2",
+    "pyyaml>=6.0.3,<7",
+    "delta-spark>=4.0.0,<5",
+    "python-dateutil>=2.9.0.post0,<3",
+    "pytest-mock>=3.15.1,<4",
+    "pandas>=2.3.3,<3",
+    "flake8-broken-line>=1.0.0,<2",
+    "loguru>=0.7.3,<0.8",
+    "importlib-metadata>=8.7.0,<9",
+    "numpy>=2.3.4,<3",
+]
 
-readme = "README.md"
-keywords = ["feature", "featureslib", "featuremaker", "metadata", "featureloader", "loader"]
-documentation = "https://absaoss.github.io/rialto/"
-repository = "https://github.com/AbsaOSS/rialto"
+[project.urls]
+Repository = "https://github.com/AbsaOSS/rialto"
+Documentation = "https://absaoss.github.io/rialto/"
 
-[tool.poetry.dependencies]
-python = ">=3.10,<4.0"
-pydantic = "^2.2.1"
-pathlib = "^1.0.1"
-pyyaml = "^6.0.1"
-delta-spark = "^2.4.0"
-python-dateutil = "^2.8.2"
-pytest-mock = "^3.11.1"
-pandas = "^2.1.0"
-flake8-broken-line = "^1.0.0"
-loguru = "^0.7.2"
-importlib-metadata = "^7.2.1"
-numpy = "<2.0.0"
+[dependency-groups]
+dev = [
+    "pyspark>=4.0.0,<5",
+    "chispa>=0.11.1,<0.12",
+    "pytest>=8.4.2,<9",
+    "black>=25.9.0,<26",
+    "isort>=7.0.0,<8",
+    "pytest-cov>=7.0.0,<8",
+    "flake8>=7.3.0,<8",
+    "flake8-docstrings>=1.7.0,<2",
+    "pep8-naming>=0.15.1,<0.16",
+    "pre-commit>=4.3.0,<5",
+    "sphinx>=8.2.3,<9",
+    "sphinx-rtd-theme>=3.0.2,<4",
+    "sphinx-mdinclude>=0.6.2,<0.7",
+]
 
-[tool.poetry.dev-dependencies]
-pyspark = "^3.4.1"
-chispa = "^0.9.2"
-pytest = "^7.4.0"
-black = "^23.7.0"
-isort = "^5.12.0"
-pytest-cov = "^4.1.0"
-flake8 = "^6.1.0"
-flake8-docstrings = "^1.7.0"
-pep8-naming = "^0.13.3"
-pre-commit = "^3.4.0"
-sphinx = "^7.2.6"
-sphinx-rtd-theme = "^2.0.0"
-sphinx-mdinclude = "^0.5.3"
+[tool.hatch.build.targets.sdist]
+include = ["rialto"]
+
+[tool.hatch.build.targets.wheel]
+include = ["rialto"]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.black]
 line-length = 120
-target-version = ["py310"]
+target-version = ["py312"]
 
 [tool.isort]
 profile = "black"

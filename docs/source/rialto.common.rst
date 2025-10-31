@@ -4,6 +4,14 @@ rialto.common package
 Submodules
 ----------
 
+rialto.common.env\_yaml module
+----------------------------------
+
+.. automodule:: rialto.common.env_yaml
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 rialto.common.table\_reader module
 ----------------------------------
 
