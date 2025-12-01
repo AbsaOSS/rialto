@@ -44,6 +44,7 @@ class Runner:
         op: str = None,
         skip_dependencies: bool = False,
         overrides: Dict = None,
+        merge_schema: bool = False,
     ):
         self.spark = spark
         self.config = get_pipelines_config(config_path, overrides)
@@ -51,6 +52,7 @@ class Runner:
         self.rerun = rerun
         self.skip_dependencies = skip_dependencies
         self.op = op
+        self.merge_schema = merge_schema
         self.tracker = Tracker(
             mail_cfg=self.config.runner.mail, bookkeeping=self.config.runner.bookkeeping, spark=spark
         )
@@ -104,7 +106,12 @@ class Runner:
         :return: None
         """
         df = df.withColumn(table.partition, F.lit(info_date))
-        df.write.partitionBy(table.partition).mode("overwrite").saveAsTable(table.get_table_path())
+        if self.merge_schema is True:
+            df.write.partitionBy(table.partition).mode("overwrite").option("mergeSchema", "true").saveAsTable(
+                table.get_table_path()
+            )
+        else:
+            df.write.partitionBy(table.partition).mode("overwrite").saveAsTable(table.get_table_path())
         logger.info(f"Results writen to {table.get_table_path()}")
 
     def _check_written(self, info_date: date, table: Table) -> int:
