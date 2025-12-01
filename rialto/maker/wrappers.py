@@ -115,7 +115,7 @@ def template(feature_functions: typing.Union[typing.Callable, FeatureHolder], te
     Wrap feature with string template to create a text feature
 
     :param feature_functions: FeatureHolder or pure function
-    :param text: string template of the feature
+    :param template: string template of the feature
     :return: FeatureHolder
     """
     logger.trace(f"Wrapping {feature_functions} with text template")
