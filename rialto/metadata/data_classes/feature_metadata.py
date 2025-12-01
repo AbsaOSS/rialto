@@ -31,6 +31,7 @@ class FeatureMetadata:
     value_type: ValueType
     name: str
     description: str
+    template: str = None
     group: GroupMetadata = None
 
     def __repr__(self) -> str:
@@ -38,7 +39,8 @@ class FeatureMetadata:
         return (
             "FeatureMetadata("
             f"name={self.name!r}, value_type={self.value_type!r}, "
-            f"description={self.description!r}, group={self.group!r}, "
+            f"description={self.description!r}, template={self.template!r}, "
+            f"group={self.group!r}"
             ")"
         )
 
@@ -49,7 +51,7 @@ class FeatureMetadata:
         :param group_name: Feature group name
         :return: tuple with feature information
         """
-        return (self.name, self.value_type.value, self.description, group_name)
+        return (self.name, self.value_type.value, self.description, self.template, group_name)
 
     def add_group(self, group: GroupMetadata) -> Self:
         """
@@ -73,4 +75,5 @@ class FeatureMetadata:
             value_type=ValueType[record.feature_type],
             name=record.feature_name,
             description=record.feature_description,
+            template=record.feature_template,
         )
