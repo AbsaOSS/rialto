@@ -57,6 +57,7 @@ This behavior can be modified by various parameters and switches available.
 * **op** - run only selected operation / pipeline
 * **skip_dependencies** - ignore dependency checks and run all jobs
 * **overrides** - dictionary of overrides for the configuration
+* **merge_schema** - write output dataframe with mergeSchema option enabled
 
 
 Transformations are not included in the runner itself, it imports them dynamically according to the configuration, therefore it's necessary to have them locally installed.

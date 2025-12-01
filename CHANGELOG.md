@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
  ### General
  - Updated python version to 3.12 and pyspark to 4.0
  - Migrated from poetry to UV
+ ### Runner
+ - Added merge_schema manual override option
+ ### Maker
+ - Added another feature decorator _@template_ to support feature to text conversion
 
 ## 2.0.11 - 2025-08-12
   ### Loader
