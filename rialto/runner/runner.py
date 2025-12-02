@@ -96,6 +96,14 @@ class Runner:
 
         return df
 
+    def _create_schema(self, table: Table):
+        """
+        Create schema if it doesn't exist
+
+        :param schema_path: path to schema
+        """
+        self.spark.sql(f"CREATE SCHEMA IF NOT EXISTS {table.get_schema_path()}")
+
     def _write(self, df: DataFrame, info_date: date, table: Table) -> None:
         """
         Write dataframe to storage
@@ -105,6 +113,8 @@ class Runner:
         :param table: path to write to
         :return: None
         """
+        self._create_schema(table)
+
         df = df.withColumn(table.partition, F.lit(info_date))
         if self.merge_schema is True:
             df.write.partitionBy(table.partition).mode("overwrite").option("mergeSchema", "true").saveAsTable(
