@@ -19,8 +19,6 @@ from unittest.mock import MagicMock
 import pyspark.sql.types
 
 import tests.jobs.resources as resources
-from rialto.jobs.resolver import Resolver
-from rialto.loader import PysparkFeatureLoader
 
 
 def test_setup(spark):
@@ -48,7 +46,7 @@ def test_no_return_vaue_adds_version_timestamp_dataframe(spark):
 
     result = resources.CustomJobNoReturnVal().run(reader=table_reader, run_date=date, spark=spark, config=None)
 
-    assert type(result) is pyspark.sql.DataFrame
+    assert isinstance(result, pyspark.sql.DataFrame)
     assert result.columns == ["JOB_NAME", "CREATION_TIME", "VERSION"]
     assert result.first()["VERSION"] == "1.0.0"
     assert result.count() == 1
@@ -60,7 +58,7 @@ def test_return_dataframe_forwarded_with_version(spark):
 
     result = resources.CustomJobReturnsDataFrame().run(reader=table_reader, run_date=date, spark=spark, config=None)
 
-    assert type(result) is pyspark.sql.DataFrame
+    assert isinstance(result, pyspark.sql.DataFrame)
     assert result.columns == ["FIRST", "SECOND", "VERSION"]
     assert result.first()["VERSION"] == "1.0.0"
     assert result.count() == 2
@@ -72,5 +70,5 @@ def test_none_job_version_wont_fill_job_colun(spark):
 
     result = resources.CustomJobNoVersion().run(reader=table_reader, run_date=date, spark=spark, config=None)
 
-    assert type(result) is pyspark.sql.DataFrame
+    assert isinstance(result, pyspark.sql.DataFrame)
     assert "VERSION" not in result.columns

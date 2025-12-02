@@ -20,20 +20,19 @@ jobs:
       - name: Checkout Rialto
         uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v4
+      - name: "Set up Python"
+        uses: actions/setup-python@v6
         with:
-          python-version: "3.10.6"
+          python-version-file: ".python-version"
 
-      - name: Setup Poetry
-        uses: abatilo/actions-poetry@v2.1.5
-        with:
-          poetry-version: 1.5.1
+      - name: Setup UV
+        uses: astral-sh/setup-uv@v7
 
-      - name: Install dependencies
-        run: poetry install
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
 
       - name: Build the wheel
-        run: poetry build
+        run: uv build
 
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

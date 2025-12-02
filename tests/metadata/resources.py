@@ -31,6 +31,7 @@ feature_schema = StructType(
         StructField("feature_name", StringType(), True),
         StructField("feature_type", StringType(), True),
         StructField("feature_description", StringType(), True),
+        StructField("feature_template", StringType(), True),
         StructField("group_name", StringType(), True),
     ]
 )
@@ -41,8 +42,8 @@ group_base = [
 ]
 
 feature_base = [
-    ("Feature1", "nominal", "feature1", "Group2"),
-    ("Feature2", "nominal", "feature2", "Group2"),
+    ("Feature1", "nominal", "feature1", "template1", "Group2"),
+    ("Feature2", "nominal", "feature2", "template2", "Group2"),
 ]
 
 group_md1 = GroupMetadata(
@@ -64,4 +65,6 @@ group_md2 = GroupMetadata(
     features=["Feature1", "Feature2"],
 )
 
-feature_md1 = FeatureMetadata(name="Feature1", value_type=ValueType.nominal, description="feature1", group=group_md2)
+feature_md1 = FeatureMetadata(
+    name="Feature1", value_type=ValueType.nominal, description="feature1", template="template1", group=group_md2
+)

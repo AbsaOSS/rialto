@@ -12,13 +12,6 @@ rialto.loader.config\_loader module
    :undoc-members:
    :show-inheritance:
 
-rialto.loader.data\_loader module
----------------------------------
-
-.. automodule:: rialto.loader.data_loader
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 rialto.loader.interfaces module
 -------------------------------

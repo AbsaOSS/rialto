@@ -57,6 +57,7 @@ This behavior can be modified by various parameters and switches available.
 * **op** - run only selected operation / pipeline
 * **skip_dependencies** - ignore dependency checks and run all jobs
 * **overrides** - dictionary of overrides for the configuration
+* **merge_schema** - write output dataframe with mergeSchema option enabled
 
 
 Transformations are not included in the runner itself, it imports them dynamically according to the configuration, therefore it's necessary to have them locally installed.
@@ -280,6 +281,22 @@ from rialto.metadata import ValueType as VT
 @rfm.desc("Recency of the action")
 def RECENCY() -> Column:
     return F.months_between(F.lit(rfm.FeatureMaker.make_date), F.col("DATE"))
+```
+
+#### @template
+Provides an option to pass a template string that's to be used to create a text feature, this template is saved in [metadata](#metadata).
+
+```python
+import pyspark.sql.functions as F
+import rialto.maker as rfm
+from pyspark.sql import Column
+from rialto.metadata import ValueType as VT
+
+@rfm.feature(VT.numerical)
+@rfm.desc("Age of customer")
+@rfm.template("Customer is $X years old")
+def AGE() -> Column:
+    return F.col("AGE")
 ```
 
 #### @param
