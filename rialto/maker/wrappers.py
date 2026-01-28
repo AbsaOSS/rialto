@@ -12,7 +12,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-__all__ = ["feature", "desc", "template", "param", "depends"]
+__all__ = ["feature", "desc", "param", "depends"]
 
 import typing
 from copy import deepcopy
@@ -89,7 +89,7 @@ def desc(feature_functions: typing.Union[typing.Callable, FeatureHolder], desc: 
     Wrap feature with string description, used in metadata
 
     :param feature_functions: FeatureHolder or pure function
-    :param desc: text description of the feature
+    :param type: FeatureType enum (numerical, ordinal, nominal)
     :return: FeatureHolder
     """
     logger.trace(f"Wrapping {feature_functions} with description")
@@ -103,32 +103,6 @@ def desc(feature_functions: typing.Union[typing.Callable, FeatureHolder], desc: 
             func_list = FeatureHolder()
             new_feature_f = FeatureFunction(feature_functions.__name__, feature_functions)
             new_feature_f.description = desc
-            func_list.append(new_feature_f)
-            return func_list
-
-    return wrapper()
-
-
-@decorator_with_args
-def template(feature_functions: typing.Union[typing.Callable, FeatureHolder], template: str):
-    """
-    Wrap feature with string template to create a text feature
-
-    :param feature_functions: FeatureHolder or pure function
-    :param template: string template of the feature
-    :return: FeatureHolder
-    """
-    logger.trace(f"Wrapping {feature_functions} with text template")
-
-    def wrapper() -> FeatureHolder:
-        if isinstance(feature_functions, FeatureHolder):
-            for f in feature_functions:
-                f.template = template
-            return feature_functions
-        else:
-            func_list = FeatureHolder()
-            new_feature_f = FeatureFunction(feature_functions.__name__, feature_functions)
-            new_feature_f.template = template
             func_list.append(new_feature_f)
             return func_list
 

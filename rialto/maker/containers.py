@@ -33,7 +33,6 @@ class FeatureFunction:
         self.dependencies: typing.List[str] = []
         self.type = value_type
         self.description = "basic feature"
-        self.template = "value $X"
 
     def __str__(self) -> str:
         """
@@ -45,8 +44,7 @@ class FeatureFunction:
             f"Name: {self.name}\n\t"
             f"Parameters: {self.parameters}\n\t"
             f"Type: {self.get_type()}\n\t"
-            f"Description: {self.description}\n\t"
-            f"Template: {self.template}"
+            f"Description: {self.description}"
         )
 
     def metadata(self) -> FeatureMetadata:
@@ -55,9 +53,7 @@ class FeatureFunction:
 
         :return: metadata dict
         """
-        return FeatureMetadata(
-            name=self.get_feature_name(), value_type=self.type, description=self.description, template=self.template
-        )
+        return FeatureMetadata(name=self.get_feature_name(), value_type=self.type, description=self.description)
 
     def get_feature_name(self) -> str:
         """

@@ -283,22 +283,6 @@ def RECENCY() -> Column:
     return F.months_between(F.lit(rfm.FeatureMaker.make_date), F.col("DATE"))
 ```
 
-#### @template
-Provides an option to pass a template string that's to be used to create a text feature, this template is saved in [metadata](#metadata).
-
-```python
-import pyspark.sql.functions as F
-import rialto.maker as rfm
-from pyspark.sql import Column
-from rialto.metadata import ValueType as VT
-
-@rfm.feature(VT.numerical)
-@rfm.desc("Age of customer")
-@rfm.template("Customer is $X years old")
-def AGE() -> Column:
-    return F.col("AGE")
-```
-
 #### @param
 Inspired by @pytest.mark.parametrize, it has similar interface and fulfills the same role. It allows you to invoke the feature function multiple times with different values of the parameter.
 If multiple @params are used, the number of final features will be a product of all parameters. The feature function has to expect a parameter with the same name as the @params name.

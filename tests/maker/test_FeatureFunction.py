@@ -57,8 +57,8 @@ def test_serialization():
     func.parameters["paramC"] = 1
     func.parameters["paramA"] = 4
     assert (
-        func.__str__() == "Name: feature\n\tParameters: {'paramC': 1, 'paramA': 4}\n\t"
-        "Type: nominal\n\tDescription: basic feature\n\tTemplate: value $X"
+        func.__str__()
+        == "Name: feature\n\tParameters: {'paramC': 1, 'paramA': 4}\n\tType: nominal\n\tDescription: basic feature"
     )
 
 
@@ -68,9 +68,7 @@ def test_metadata():
     func.parameters["paramA"] = 4
     func.dependencies = ["featureB", "featureC"]
     func.description = "nice feature"
-    func.template = "value $X something"
 
     assert func.metadata().name == "FEATURE_PARAMA_4_PARAMC_1"
     assert func.metadata().value_type == ValueType.ordinal
     assert func.metadata().description == "nice feature"
-    assert func.metadata().template == "value $X something"
