@@ -23,6 +23,7 @@ import pyspark.sql.functions as F
 from loguru import logger
 from pyspark.sql import DataFrame
 
+from rialto.common.utils import normalize_types
 from rialto.maker.containers import FeatureFunction, FeatureHolder
 
 
@@ -140,7 +141,8 @@ class _FeatureMaker:
         if not keep_preexisting:
             logger.info("Dropping non-selected columns")
             self.data_frame = self.data_frame.select(*self.key, *feature_names)
-        return self._filter_null_keys(self.data_frame)
+        df = self._filter_null_keys(self.data_frame)
+        return normalize_types(df)
 
     def _make_aggregated(self) -> DataFrame:
         """
@@ -154,7 +156,8 @@ class _FeatureMaker:
             aggregates.append(feature_function.callable().alias(feature_function.get_feature_name()))
 
         self.data_frame = self.data_frame.groupBy(self.key).agg(*aggregates)
-        return self._filter_null_keys(self.data_frame)
+        df = self._filter_null_keys(self.data_frame)
+        return normalize_types(df)
 
     def make(
         self,
@@ -237,7 +240,8 @@ class _FeatureMaker:
         self.make_date = make_date
         feature_functions = self._register_module(features_module)
         feature = self._find_feature(name, feature_functions)
-        return df.withColumn(feature.get_feature_name(), feature.callable()).select(feature.get_feature_name())
+        df = df.withColumn(feature.get_feature_name(), feature.callable()).select(feature.get_feature_name())
+        return normalize_types(df)
 
     def make_single_agg_feature(
         self,
@@ -261,7 +265,8 @@ class _FeatureMaker:
         self.make_date = make_date
         feature_functions = self._register_module(features_module)
         feature = self._find_feature(name, feature_functions)
-        return df.groupBy(key).agg(feature.callable().alias(feature.get_feature_name()))
+        df = df.groupBy(key).agg(feature.callable().alias(feature.get_feature_name()))
+        return normalize_types(df)
 
 
 FeatureMaker = _FeatureMaker()
