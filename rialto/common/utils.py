@@ -16,12 +16,20 @@ __all__ = ["load_yaml", "cast_decimals_to_floats", "get_caller_module"]
 
 import inspect
 import os
-from typing import Any, List
+from typing import Any
 
 import pyspark.sql.functions as F
 import yaml
 from pyspark.sql import DataFrame
-from pyspark.sql.types import FloatType
+from pyspark.sql.types import (
+    ByteType,
+    DecimalType,
+    DoubleType,
+    FloatType,
+    IntegerType,
+    LongType,
+    ShortType,
+)
 
 from rialto.common.env_yaml import EnvLoader
 
@@ -62,12 +70,32 @@ def get_caller_module() -> Any:
     0th entry is this function
     1st entry is the function which needs to know who called it
     2nd entry is the calling function
-
     Therefore, we'll return a module which contains the function at the 2nd place on the stack.
 
     :return: Python Module containing the calling function.
     """
-
     stack = inspect.stack()
     last_stack = stack[2]
     return inspect.getmodule(last_stack[0])
+
+
+def normalize_types(df: DataFrame) -> DataFrame:
+    """
+    Normalize data types in the DataFrame
+
+    Converts all decimal columns to FloatType and
+    all integer columns to LongType.
+    """
+    float_types = (FloatType, DecimalType)
+    int_types = (ByteType, ShortType, IntegerType)
+
+    return df.select(
+        [
+            F.col(f.name).cast(DoubleType())
+            if isinstance(f.dataType, float_types)
+            else F.col(f.name).cast(LongType())
+            if isinstance(f.dataType, int_types)
+            else F.col(f.name)
+            for f in df.schema.fields
+        ]
+    )

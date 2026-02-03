@@ -15,8 +15,9 @@
 import pyspark.sql.functions as F
 import pytest
 from numpy import dtype
+from pyspark.sql.types import DoubleType, LongType, StringType
 
-from rialto.common.utils import cast_decimals_to_floats
+from rialto.common.utils import cast_decimals_to_floats, normalize_types
 
 
 @pytest.fixture
@@ -27,6 +28,16 @@ def sample_df(spark):
     )
 
     return df.select("a", "b", "c", F.col("d").cast("decimal"), F.col("e").cast("decimal(18,5)"))
+
+
+@pytest.fixture
+def sample_df2(spark):
+    df = spark.createDataFrame(
+        [(1, 2.33, "str", 4.55, 5.66, 4), (1, 2.33, "str", 4.55, 5.66, 5), (1, 2.33, "str", 4.55, 5.66, 6)],
+        schema="a long, b float, c string, d float, e float, f int",
+    )
+
+    return df.select("a", "b", "c", F.col("d").cast("decimal"), F.col("e").cast("double"), "f")
 
 
 def test_cast_decimals_to_floats(sample_df):
@@ -42,3 +53,14 @@ def test_cast_decimals_to_floats_topandas_works(sample_df):
 
     assert df_pd.dtypes.iloc[3] == dtype("float32")
     assert df_pd.dtypes.iloc[4] == dtype("float32")
+
+
+def test_normalize_types(sample_df2):
+    df_fixed = normalize_types(sample_df2)
+
+    assert isinstance(df_fixed.schema["a"].dataType, LongType)
+    assert isinstance(df_fixed.schema["b"].dataType, DoubleType)
+    assert isinstance(df_fixed.schema["c"].dataType, StringType)
+    assert isinstance(df_fixed.schema["d"].dataType, DoubleType)
+    assert isinstance(df_fixed.schema["e"].dataType, DoubleType)
+    assert isinstance(df_fixed.schema["f"].dataType, LongType)
