@@ -1,6 +1,6 @@
 [project]
 name = "rialto"
-version = "2.1.2"
+version = "2.1.3"
 description = "Rialto is a framework for building and deploying machine learning features in a scalable and reusable way. It provides a set of tools that make it easy to define and deploy features and models, and it provides a way to orchestrate the execution of these features and models."
 authors = [
     { name = "Marek Dobransky", email = "marekdobr@gmail.com" },

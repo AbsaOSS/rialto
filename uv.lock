@@ -1078,7 +1078,7 @@ wheels = [
 
 [[package]]
 name = "rialto"
-version = "2.1.2"
+version = "2.1.3"
 source = { editable = "." }
 dependencies = [
     { name = "delta-spark" },
