@@ -91,11 +91,11 @@ def normalize_types(df: DataFrame) -> DataFrame:
 
     return df.select(
         [
-            F.col(f.name).cast(DoubleType())
+            F.when(F.col(f.name).isNotNull(), F.col(f.name).cast(DoubleType())).otherwise(F.lit(None)).alias(f.name)
             if isinstance(f.dataType, float_types)
-            else F.col(f.name).cast(LongType())
+            else F.when(F.col(f.name).isNotNull(), F.col(f.name).cast(LongType())).otherwise(F.lit(None)).alias(f.name)
             if isinstance(f.dataType, int_types)
-            else F.col(f.name)
+            else F.when(F.col(f.name).isNotNull(), F.col(f.name)).otherwise(F.lit(None)).alias(f.name)
             for f in df.schema.fields
         ]
     )

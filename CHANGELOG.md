@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 2.1.3 - 2026-02
+ ### Runner
+ - Separate writer from runner, sorting schema to align to written table
+ - Added a debug run option that return dataframe without writing anything
+
 ## 2.1.2 - 2026-01
  ### Maker
  - Feature type normalization to Double and Long

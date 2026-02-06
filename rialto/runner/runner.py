@@ -30,6 +30,7 @@ from rialto.runner.reporting.record import Record
 from rialto.runner.reporting.tracker import Tracker
 from rialto.runner.table import Table
 from rialto.runner.transformation import Transformation
+from rialto.runner.writer import Writer
 
 
 class Runner:
@@ -52,7 +53,7 @@ class Runner:
         self.rerun = rerun
         self.skip_dependencies = skip_dependencies
         self.op = op
-        self.merge_schema = merge_schema
+        self.writer = Writer(spark, merge_schema=merge_schema)
         self.tracker = Tracker(
             mail_cfg=self.config.runner.mail, bookkeeping=self.config.runner.bookkeeping, spark=spark
         )
@@ -95,34 +96,6 @@ class Runner:
         )
 
         return df
-
-    def _create_schema(self, table: Table):
-        """
-        Create schema if it doesn't exist
-
-        :param schema_path: path to schema
-        """
-        self.spark.sql(f"CREATE SCHEMA IF NOT EXISTS {table.get_schema_path()}")
-
-    def _write(self, df: DataFrame, info_date: date, table: Table) -> None:
-        """
-        Write dataframe to storage
-
-        :param df: dataframe to write
-        :param info_date: date to partition
-        :param table: path to write to
-        :return: None
-        """
-        self._create_schema(table)
-
-        df = df.withColumn(table.partition, F.lit(info_date))
-        if self.merge_schema is True:
-            df.write.partitionBy(table.partition).mode("overwrite").option("mergeSchema", "true").saveAsTable(
-                table.get_table_path()
-            )
-        else:
-            df.write.partitionBy(table.partition).mode("overwrite").saveAsTable(table.get_table_path())
-        logger.info(f"Results writen to {table.get_table_path()}")
 
     def _check_written(self, info_date: date, table: Table) -> int:
         """
@@ -238,7 +211,7 @@ class Runner:
 
             feature_group = utils.load_module(pipeline.module)
             df = self._execute(feature_group, run_date, pipeline)
-            self._write(df, info_date, target)
+            self.writer.write(df, info_date, target)
             records = self._check_written(info_date, target)
             logger.info(f"Generated {records} records")
             if records == 0:
@@ -331,3 +304,23 @@ class Runner:
             print(self.tracker.records)
             self.tracker.report_by_mail()
             logger.info("Execution finished")
+
+    def debug(self) -> DataFrame:
+        """Debug mode - run only first op for one date and return the resulting dataframe"""
+        logger.info("Running in debug mode")
+        if self.op:
+            pipeline = [p for p in self.config.pipelines if p.name == self.op][0]
+        else:
+            pipeline = self.config.pipelines[0]
+
+        target = Table(
+            schema_path=pipeline.target.target_schema,
+            class_name=pipeline.module.python_class,
+            partition=pipeline.target.target_partition_column,
+        )
+        selected_run_dates, selected_info_dates = self._select_run_dates(pipeline, target)
+        if len(selected_run_dates) > 0:
+            df = self._execute(utils.load_module(pipeline.module), selected_run_dates[0], pipeline)
+            return self.writer._process(df, selected_info_dates[0], target)
+        else:
+            logger.info("No dates to run in debug mode")
