@@ -88,9 +88,7 @@ class TableReader(DataReader):
         :param df: Dataframe
         :return: renamed Dataframe
         """
-        for col in df.columns:
-            df = df.withColumnRenamed(col, col.upper())
-        return df
+        return df.select(*[F.col(c).alias(c.upper()) for c in df.columns])
 
     def _get_latest_available_date(self, df: DataFrame, date_col: str, until: Optional[datetime.date]) -> datetime.date:
         if until:

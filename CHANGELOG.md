@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 2.1.4 - 2026-02
+ ### Common
+ - table reader optimization
+
 ## 2.1.3 - 2026-02
  ### Runner
  - Separate writer from runner, sorting schema to align to written table
