@@ -12,15 +12,21 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-__all__ = ["load_module", "table_exists", "get_partitions", "init_tools", "find_dependency"]
+__all__ = [
+    "load_module",
+    "table_exists",
+    "get_available_dates",
+    "init_tools",
+    "find_dependency",
+    "get_rows_from_history",
+]
 
 from datetime import date
 from importlib import import_module
-from typing import List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from pyspark.sql import SparkSession
 
-from rialto.common import DataReader
 from rialto.loader import PysparkFeatureLoader
 from rialto.metadata import MetadataManager
 from rialto.runner.config_loader import ModuleConfig, PipelineConfig
@@ -50,20 +56,34 @@ def table_exists(spark: SparkSession, table: str) -> bool:
     return spark.catalog.tableExists(table)
 
 
-def get_partitions(reader: DataReader, table: Table) -> List[date]:
+def get_available_dates(spark: SparkSession, table: Table, filters: Optional[Dict[str, str]] = None) -> List[date]:
     """
-    Get partition values
+    Get distinct date values from table's partitions using SHOW PARTITIONS.
 
+    :param spark: SparkSession instance
     :param table: Table object
-    :return: List of partition values
+    :param filters: Optional dict of partition column filters to apply
+    :return: List of date values
     """
-    rows = (
-        reader.get_table(table.get_table_path(), date_column=table.partition)
-        .select(table.partition)
-        .distinct()
-        .collect()
-    )
-    return [r[table.partition] for r in rows]
+    partition_df = spark.sql(f"SHOW PARTITIONS {table.get_table_path()}")
+
+    if table.date_column not in partition_df.columns:
+        raise ValueError(
+            f"date_column '{table.date_column}' not found in partitions of {table.get_table_path()}. "
+            f"Available partition columns: {partition_df.columns}"
+        )
+
+    if filters:
+        for col, val in filters.items():
+            if col not in partition_df.columns:
+                raise ValueError(
+                    f"Filter column '{col}' not found in partitions of {table.get_table_path()}. "
+                    f"Available partition columns: {partition_df.columns}"
+                )
+            partition_df = partition_df.filter(partition_df[col] == val)
+
+    date_rows = partition_df.select(table.date_column).distinct().collect()
+    return [row[table.date_column] for row in date_rows]
 
 
 def init_tools(spark: SparkSession, pipeline: PipelineConfig) -> Tuple[MetadataManager, PysparkFeatureLoader]:
@@ -102,3 +122,21 @@ def find_dependency(config: PipelineConfig, name: str):
         if dep.name == name:
             return dep
     return None
+
+
+def get_rows_from_history(spark: SparkSession, table_path: str, version: str) -> int:
+    """
+    Get the number of rows written in a specific Delta commit version.
+
+    :param spark: SparkSession instance
+    :param table_path: Full table path (catalog.schema.table)
+    :param version: The commit version to look up
+    :return: Number of rows written, or 0 if unable to determine
+    """
+    history_df = spark.sql(f"DESCRIBE HISTORY {table_path}")
+    version_row = history_df.filter(history_df.version == version).first()
+
+    if version_row and version_row.operationMetrics.get("numOutputRows"):
+        return int(version_row.operationMetrics.get("numOutputRows"))
+
+    return 0

@@ -1,6 +1,14 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 2.2.0 - 2026-02
+ ### Runner
+ - Added multi-column partitioning support via `target_partition_column` accepting a list
+ - Added `date_column` config option to explicitly specify which column receives the info_date
+ - Added `filters` option to dependencies for filtering by partition column values
+ - Added `target_table` config option to override the target table name
+ - Added `target_filters` config option for completion checking with multi-column partitions
+
 ## 2.1.4 - 2026-02
  ### Common
  - table reader optimization

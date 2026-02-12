@@ -68,7 +68,7 @@ class Writer:
         return df
 
     def _process(self, df: DataFrame, info_date: date, table: Table) -> DataFrame:
-        df = df.withColumn(table.partition, F.lit(info_date))
+        df = df.withColumn(table.date_column, F.lit(info_date))
 
         df = self._align_schema(df, self._get_existing_columns(table))
 
@@ -88,9 +88,9 @@ class Writer:
         df = self._process(df, info_date, table)
 
         if self.merge_schema is True:
-            df.write.partitionBy(table.partition).mode("overwrite").option("mergeSchema", "true").saveAsTable(
+            df.write.partitionBy(*table.partitions).mode("overwrite").option("mergeSchema", "true").saveAsTable(
                 table.get_table_path()
             )
         else:
-            df.write.partitionBy(table.partition).mode("overwrite").saveAsTable(table.get_table_path())
-        logger.info(f"Results writen to {table.get_table_path()}")
+            df.write.partitionBy(*table.partitions).mode("overwrite").saveAsTable(table.get_table_path())
+        logger.info(f"Results written to {table.get_table_path()}")

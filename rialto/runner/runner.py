@@ -16,7 +16,7 @@ __all__ = ["Runner"]
 
 import datetime
 from datetime import date
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import pyspark.sql.functions as F
 from loguru import logger
@@ -97,32 +97,42 @@ class Runner:
 
         return df
 
-    def _check_written(self, info_date: date, table: Table) -> int:
+    def _write_and_check(self, df: DataFrame, info_date: date, table: Table) -> int:
         """
-        Check if there are records written for given date
+        Write dataframe to storage and return number of rows written using Delta version tracking.
 
-        :param info_date: date to check
+        :param df: dataframe to write
+        :param info_date: date to partition
         :param table: target table object
-        :return: number of records
+        :return: number of records written, or 0 if write didn't happen
         """
-        df = self.spark.read.table(table.get_table_path())
-        df = df.filter(F.col(table.partition) == info_date)
-        return df.count()
+        version_before = self.spark.conf.get("spark.databricks.delta.lastCommitVersionInSession")
+        self.writer.write(df, info_date, table)
+        version_after = self.spark.conf.get("spark.databricks.delta.lastCommitVersionInSession")
 
-    def check_dates_have_partition(self, table: Table, dates: List[date]) -> List[bool]:
+        if version_before == version_after or version_after is None:
+            return 0
+
+        return utils.get_rows_from_history(self.spark, table.get_table_path(), version_after)
+
+    def has_data_for_dates(
+        self, table: Table, dates: List[date], filters: Optional[Dict[str, str]] = None
+    ) -> List[bool]:
         """
-        For given list of dates, check if there is a matching partition for each
+        For given list of dates, check if there is matching data for each
 
         :param table: Table object
         :param dates: list of dates to check
+        :param filters: optional dict of partition column filters
         :return: list of bool
         """
-        if utils.table_exists(self.spark, table.get_table_path()):
-            partitions = utils.get_partitions(self.reader, table)
-            return [(date in partitions) for date in dates]
-        else:
+        if not utils.table_exists(self.spark, table.get_table_path()):
             logger.info(f"Table {table.get_table_path()} doesn't exist!")
             return [False for _ in dates]
+
+        all_dates = utils.get_available_dates(self.spark, table, filters)
+
+        return [(d in all_dates) for d in dates]
 
     def check_dependencies(self, pipeline: PipelineConfig, run_date: date) -> bool:
         """
@@ -144,8 +154,8 @@ class Runner:
 
             logger.debug(f"Date column for {dependency.table} is {dependency.date_col}")
 
-            source = Table(table_path=dependency.table, partition=dependency.date_col)
-            if True in self.check_dates_have_partition(source, possible_dep_dates):
+            source = Table(table_path=dependency.table, partitions=dependency.date_col)
+            if True in self.has_data_for_dates(source, possible_dep_dates, dependency.filters):
                 logger.info(f"Dependency for {dependency.table} from {dep_from} until {run_date} is fulfilled")
             else:
                 msg = f"Missing dependency for {dependency.table} from {dep_from} until {run_date}"
@@ -158,30 +168,36 @@ class Runner:
 
         return True
 
-    def _get_completion(self, target: Table, info_dates: List[date]) -> List[bool]:
+    def _get_completion(
+        self, target: Table, info_dates: List[date], filters: Optional[Dict[str, str]] = None
+    ) -> List[bool]:
         """
         Check if model has run for given dates
 
-        :param target_path: Table object
+        :param target: Table object
         :param info_dates: list of dates
+        :param filters: optional dict of partition column filters for completion check
         :return: bool list
         """
         if self.rerun:
             return [False for _ in info_dates]
         else:
-            return self.check_dates_have_partition(target, info_dates)
+            return self.has_data_for_dates(target, info_dates, filters)
 
-    def _select_run_dates(self, pipeline: PipelineConfig, table: Table) -> Tuple[List, List]:
+    def _select_run_dates(
+        self, pipeline: PipelineConfig, table: Table, target_filters: Optional[Dict[str, str]] = None
+    ) -> Tuple[List, List]:
         """
         Select run dates and info dates based on completion
 
         :param pipeline: pipeline config
         :param table: table path
+        :param target_filters: optional dict of partition column filters for completion check
         :return: list of run dates and list of info dates
         """
         possible_run_dates = DateManager.run_dates(self.date_from, self.date_until, pipeline.schedule)
         possible_info_dates = [DateManager.to_info_date(x, pipeline.schedule) for x in possible_run_dates]
-        current_state = self._get_completion(table, possible_info_dates)
+        current_state = self._get_completion(table, possible_info_dates, target_filters)
 
         selection = [
             (run, info) for run, info, state in zip(possible_run_dates, possible_info_dates, current_state) if not state
@@ -211,8 +227,7 @@ class Runner:
 
             feature_group = utils.load_module(pipeline.module)
             df = self._execute(feature_group, run_date, pipeline)
-            self.writer.write(df, info_date, target)
-            records = self._check_written(info_date, target)
+            records = self._write_and_check(df, info_date, target)
             logger.info(f"Generated {records} records")
             if records == 0:
                 raise RuntimeError("No records generated")
@@ -229,12 +244,16 @@ class Runner:
         """
         target = Table(
             schema_path=pipeline.target.target_schema,
+            table=pipeline.target.target_table,
             class_name=pipeline.module.python_class,
-            partition=pipeline.target.target_partition_column,
+            partitions=pipeline.target.target_partition_column,
+            date_column=pipeline.target.date_column,
         )
         logger.info(f"Loaded pipeline {pipeline.name}")
 
-        selected_run_dates, selected_info_dates = self._select_run_dates(pipeline, target)
+        selected_run_dates, selected_info_dates = self._select_run_dates(
+            pipeline, target, pipeline.target.target_filters
+        )
 
         # ----------- Checking dependencies available ----------
         for run_date, info_date in zip(selected_run_dates, selected_info_dates):
@@ -315,10 +334,14 @@ class Runner:
 
         target = Table(
             schema_path=pipeline.target.target_schema,
+            table=pipeline.target.target_table,
             class_name=pipeline.module.python_class,
-            partition=pipeline.target.target_partition_column,
+            partitions=pipeline.target.target_partition_column,
+            date_column=pipeline.target.date_column,
         )
-        selected_run_dates, selected_info_dates = self._select_run_dates(pipeline, target)
+        selected_run_dates, selected_info_dates = self._select_run_dates(
+            pipeline, target, pipeline.target.target_filters
+        )
         if len(selected_run_dates) > 0:
             df = self._execute(utils.load_module(pipeline.module), selected_run_dates[0], pipeline)
             return self.writer._process(df, selected_info_dates[0], target)

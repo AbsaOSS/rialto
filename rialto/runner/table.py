@@ -14,6 +14,8 @@
 
 __all__ = ["Table"]
 
+from typing import List, Optional, Union
+
 from rialto.metadata import class_to_catalog_name
 
 
@@ -28,12 +30,29 @@ class Table:
         schema_path: str = None,
         table_path: str = None,
         class_name: str = None,
-        partition: str = None,
+        partitions: Union[str, List[str]] = None,
+        date_column: Optional[str] = None,
     ):
         self.catalog = catalog
         self.schema = schema
         self.table = table
-        self.partition = partition
+
+        # Normalize partitions to list for consistent handling
+        if partitions is None:
+            self.partitions = []
+        elif isinstance(partitions, str):
+            self.partitions = [partitions]
+        else:
+            self.partitions = list(partitions)
+
+        # Date column: explicit or default to first partition
+        if date_column:
+            self.date_column = date_column
+        elif self.partitions:
+            self.date_column = self.partitions[0]
+        else:
+            self.date_column = None
+
         if schema_path:
             schema_path = schema_path.split(".")
             self.catalog = schema_path[0]
@@ -43,7 +62,7 @@ class Table:
             self.catalog = table_path[0]
             self.schema = table_path[1]
             self.table = table_path[2]
-        if class_name:
+        if (self.table is None) and class_name:
             self.table = class_to_catalog_name(class_name)
 
     def get_schema_path(self):

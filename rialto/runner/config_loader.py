@@ -16,7 +16,7 @@ __all__ = [
     "get_pipelines_config",
 ]
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from pydantic import BaseModel, ConfigDict
 
@@ -44,6 +44,7 @@ class DependencyConfig(BaseConfig):
     name: Optional[str] = None
     date_col: str
     interval: IntervalConfig
+    filters: Optional[Dict[str, str]] = None
 
 
 class ModuleConfig(BaseConfig):
@@ -68,7 +69,10 @@ class RunnerConfig(BaseConfig):
 
 class TargetConfig(BaseConfig):
     target_schema: str
-    target_partition_column: str
+    target_partition_column: Union[str, List[str]]
+    date_column: Optional[str] = None
+    target_table: Optional[str] = None
+    target_filters: Optional[Dict[str, str]] = None
 
 
 class MetadataManagerConfig(BaseConfig):
