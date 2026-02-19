@@ -106,14 +106,20 @@ class Runner:
         :param table: target table object
         :return: number of records written, or 0 if write didn't happen
         """
-        version_before = self.spark.conf.get("spark.databricks.delta.lastCommitVersionInSession")
-        self.writer.write(df, info_date, table)
-        version_after = self.spark.conf.get("spark.databricks.delta.lastCommitVersionInSession")
+        table_path = table.get_table_path()
+        version_before = utils.get_table_version(self.spark, table_path)
 
-        if version_before == version_after or version_after is None:
+        self.writer.write(df, info_date, table)
+
+        version_after = utils.get_table_version(self.spark, table_path)
+
+        if version_after is None:
             return 0
 
-        return utils.get_rows_from_history(self.spark, table.get_table_path(), version_after)
+        if version_before is None or (version_after > version_before):
+            return utils.get_rows_from_history(self.spark, table_path, version_after)
+
+        return 0
 
     def has_data_for_dates(
         self, table: Table, dates: List[date], filters: Optional[Dict[str, str]] = None

@@ -15,6 +15,7 @@
 __all__ = [
     "load_module",
     "table_exists",
+    "get_table_version",
     "get_available_dates",
     "init_tools",
     "find_dependency",
@@ -54,6 +55,19 @@ def table_exists(spark: SparkSession, table: str) -> bool:
     :return: bool
     """
     return spark.catalog.tableExists(table)
+
+
+def get_table_version(spark: SparkSession, table: str) -> Optional[int]:
+    """
+    Get the current Delta table version.
+
+    :param spark: SparkSession instance
+    :param table: full table path
+    :return: version number, or None if table doesn't exist
+    """
+    if not table_exists(spark, table):
+        return None
+    return spark.sql(f"DESCRIBE HISTORY {table}").first().version
 
 
 def get_available_dates(spark: SparkSession, table: Table, filters: Optional[Dict[str, str]] = None) -> List[date]:
