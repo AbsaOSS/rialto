@@ -26,3 +26,38 @@ def test_table_path_init():
     assert t.catalog == "cat"
     assert t.schema == "sch"
     assert t.table == "tab"
+
+
+def test_table_single_partition():
+    t = Table(catalog="cat", schema="sch", table="tab", partitions="DATE")
+
+    assert t.partitions == ["DATE"]
+    assert t.date_column == "DATE"
+
+
+def test_table_multiple_partitions():
+    t = Table(catalog="cat", schema="sch", table="tab", partitions=["REGION", "DATE"])
+
+    assert t.partitions == ["REGION", "DATE"]
+    assert t.date_column == "REGION"
+
+
+def test_table_multiple_partitions_with_date_column():
+    t = Table(catalog="cat", schema="sch", table="tab", partitions=["REGION", "DATE"], date_column="DATE")
+
+    assert t.partitions == ["REGION", "DATE"]
+    assert t.date_column == "DATE"
+
+
+def test_table_no_partitions():
+    t = Table(catalog="cat", schema="sch", table="tab")
+
+    assert t.partitions == []
+    assert t.date_column is None
+
+
+def test_table_explicit_date_column_only():
+    t = Table(catalog="cat", schema="sch", table="tab", date_column="CUSTOM_DATE")
+
+    assert t.partitions == []
+    assert t.date_column == "CUSTOM_DATE"

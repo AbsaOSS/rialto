@@ -18,7 +18,6 @@ import datetime
 from datetime import date
 from typing import Dict, List, Optional, Tuple
 
-import pyspark.sql.functions as F
 from loguru import logger
 from pyspark.sql import DataFrame, SparkSession
 

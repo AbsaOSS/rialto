@@ -95,6 +95,9 @@ pipelines: # a list of pipelines to run
       interval: # mandatory availability interval, subtracted from scheduled day
         units: "days"
         value: 1
+      filters: # Optional filters for partition column values
+        - column: version
+          value: "v1.0"
     - table: catalog.schema.table2
       name: "table2"
       interval:
@@ -102,7 +105,12 @@ pipelines: # a list of pipelines to run
         value: 1
   target:
       target_schema: catalog.schema # schema where tables will be created, must exist
-      target_partition_column: INFORMATION_DATE # date to partition new tables on
+      target_partition_column: INFORMATION_DATE # date to partition new tables on (can be a list for multi-column partitioning)
+      date_column: INFORMATION_DATE # Optional: explicitly specify which column receives the info_date value
+      target_table: custom_table_name # Optional: override the target table name (defaults to pipeline name)
+      target_filters: # Optional: for completion checking with multi-column partitions
+        - column: version
+          value: "v1.0"
   metadata_manager: # optional
       metadata_schema: catalog.metadata # schema where metadata is stored
   feature_loader: # optional
@@ -131,7 +139,9 @@ pipelines: # a list of pipelines to run
         value: 6
   target:
       target_schema: catalog.schema # schema where tables will be created, must exist
-      target_partition_column: INFORMATION_DATE # date to partition new tables on
+      target_partition_column: # can be a single column or list for multi-column partitioning
+        - INFORMATION_DATE
+        - VERSION
 ```
 
 The configuration can be dynamically overridden by providing a dictionary of overrides to the runner. All overrides must adhere to configurations schema, with pipeline.extras section available for custom schema.

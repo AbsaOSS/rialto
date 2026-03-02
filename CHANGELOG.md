@@ -1,7 +1,7 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
-## 2.2.0 - 2026-02
+## 2.1.5 - 2026-03
  ### Runner
  - Added multi-column partitioning support via `target_partition_column` accepting a list
  - Added `date_column` config option to explicitly specify which column receives the info_date
