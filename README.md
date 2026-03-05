@@ -32,14 +32,53 @@ This library currently contains:
 Runner is the orchestrator and scheduler of Rialto. It can be used to execute any [job](#jobs) but is primarily designed to execute feature [maker](#maker) jobs.
 The core of runner is execution of a Transformation class that can be extended for any purpose and the execution configuration that defines the handling of i/o, scheduling, dependencies and reporting.
 
+Runner operates on the assumption that your Databricks tables contain a date column (partition column) that indicates the date of data arrival. This enables:
+
+1. **Time-aware computation**: Run operations on dated tables while managing time-related dependencies automatically
+2. **Retrospective simulation**: Run computations as they would have occurred on a specific date by setting `run_date` - ensuring data newer than that date is never used
+3. **Dependency tracking**: Automatically verify that input data meets required freshness constraints relative to the run date
+4. **Automatic completion detection**: Skip computations when output data already exists (configurable with `rerun` parameter)
+
+#### Scheduling and Execution
+
+Runner uses a schedule-based approach:
+* Define a schedule (e.g., weekly on day 2, monthly on day 6) in the configuration
+* Specify a watch period (how far back to look for missing runs)
+* Runner finds all scheduled run dates within the watch period and executes missing ones
+* For each date, dependencies are checked and target existence is verified before execution
+
+#### Data Flow
+
+For each pipeline execution:
+1. **Dependency verification**: Check that all required input tables have data within specified time intervals
+2. **Transformation execution**: Run your transformation to produce a Spark DataFrame
+3. **Automatic enrichment**: Runner adds `INFORMATION_DATE` (the run date) and `VERSION` (package version) columns
+4. **Partitioned write**: Data is written to Databricks with partitioning configuration
+5. **Reporting**: Optional email notifications on failure and run information stored to tracking table
+
+#### Dependency Tracking
+
+Runner's dependency tracking ensures that all required input data is available before executing a pipeline. For each dependency:
+
+* **Date-based checking**: Runner looks for data in the dependency table's date column
+* **Interval calculation**: The required date is calculated by subtracting the dependency's interval from the run date
+* **Existence verification**: Runner checks if data exists for the calculated date (and within any specified filters)
+* **Missing data handling**: If required data is missing, Runner raises an error for that specific pipeline/date but continues executing other pipelines and dates in the queue
+
+**Example:** If you're running a pipeline on 2024-01-15 with a dependency that has a 7-day interval:
+* Runner checks if the dependency table has data for 2024-01-08 (15 days - 7 days)
+* If the dependency has `filters: {VERSION: "v2"}`, it specifically checks for data where VERSION='v2'
+* If data exists, the pipeline proceeds; otherwise, an error is raised for this specific execution, but other scheduled runs continue
+
+
 ### Transformation
 For the details on the interface see the [implementation](rialto/runner/transformation.py)
 Inside the transformation you have access to a [TableReader](#common), date of running, and if provided to Runner, a live spark session and [metadata manager](#metadata).
 You can either implement your jobs directly via extending the Transformation class, or by using the [jobs](#jobs) abstraction.
 
-### Runner
+### Basic Usage
 
-Bellow is the minimal code necessary to execute the runner.
+Below is the minimal code necessary to execute the runner.
 
 ```python
 from rialto.runner import Runner
@@ -63,6 +102,12 @@ This behavior can be modified by various parameters and switches available.
 Transformations are not included in the runner itself, it imports them dynamically according to the configuration, therefore it's necessary to have them locally installed.
 
 ### Configuration
+
+Runner is supplied with a run configuration that defines the computations it will execute. In each pipeline configuration you define:
+- **Module**: Python transformation class to execute
+- **Schedule**: When to run (daily/weekly/monthly) and on which day
+- **Dependencies**: Input tables to check, with required freshness intervals and optional filters
+- **Target**: Output location, partitioning strategy, and optional completion filters
 
 ```yaml
 runner:
@@ -95,11 +140,9 @@ pipelines: # a list of pipelines to run
       interval: # mandatory availability interval, subtracted from scheduled day
         units: "days"
         value: 1
-      filters: # Optional filters for partition column values
-        - column: version
-          value: "v1.0"
     - table: catalog.schema.table2
       name: "table2"
+      date_col: info_date
       interval:
         units: "months"
         value: 1
@@ -108,9 +151,6 @@ pipelines: # a list of pipelines to run
       target_partition_column: INFORMATION_DATE # date to partition new tables on (can be a list for multi-column partitioning)
       date_column: INFORMATION_DATE # Optional: explicitly specify which column receives the info_date value
       target_table: custom_table_name # Optional: override the target table name (defaults to pipeline name)
-      target_filters: # Optional: for completion checking with multi-column partitions
-        - column: version
-          value: "v1.0"
   metadata_manager: # optional
       metadata_schema: catalog.metadata # schema where metadata is stored
   feature_loader: # optional
@@ -143,6 +183,97 @@ pipelines: # a list of pipelines to run
         - INFORMATION_DATE
         - VERSION
 ```
+
+### Multi-Column Partitioning
+
+By default, Rialto partitions tables by a single date column (e.g., `INFORMATION_DATE`). However, you can partition by multiple columns to support use cases like A/B testing. For example, partitioning by `[INFORMATION_DATE, VERSION]` allows you to store multiple model versions side-by-side and track experiment variants.
+
+#### Basic Multi-Column Partitioning
+
+```yaml
+target:
+  target_schema: catalog.schema
+  target_partition_column:
+    - INFORMATION_DATE  # Date partition (receives run date automatically)
+    - VERSION           # Additional partition (must exist in transformation output)
+```
+
+#### Explicit Date Column
+
+If you want the date column to not be the first partition, specify it explicitly:
+
+```yaml
+target:
+  target_schema: catalog.schema
+  target_partition_column:
+    - VERSION             # Primary partition
+    - INFORMATION_DATE    # Secondary partition
+  date_column: INFORMATION_DATE  # Explicit: this column receives the run date
+```
+
+#### Filtering Dependencies by Partition Values
+
+When working with multi-partitioned tables, you may need to ensure dependencies come from specific partition values. For example, when a multi-partitioned table is used as a dependency further in the pipeline, use `filters` to specify required values:
+
+```yaml
+dependencies:
+  - table: catalog.schema.features
+    date_col: INFORMATION_DATE
+    interval:
+      units: days
+      value: 7
+    filters:
+      VERSION: "v2"        # Only check for data where VERSION='v2'
+      REGION: "US"         # Can filter on multiple columns
+```
+
+#### Target Filters for Completion Checking
+
+When your target table is multi-partitioned, you need to specify which partition combination to check for completion:
+
+```yaml
+target:
+  target_schema: catalog.schema
+  target_partition_column:
+    - INFORMATION_DATE
+    - VERSION
+  target_filters:
+    VERSION: "v2"  # Only skip computation if v2 data exists
+```
+
+**Example scenario:**
+* Table has data for `INFORMATION_DATE=2024-01-01, VERSION=v1`
+* You want to compute `INFORMATION_DATE=2024-01-01, VERSION=v2`
+* Without `target_filters`: Runner sees the date exists → skips execution
+* With `target_filters`: Runner checks for v2 specifically → doesn't exist → runs computation
+
+
+### Using Filters in Transformations
+
+When you've defined dependency filters in your config, you should use the same filters when reading data in your transformation. The `TableReader.get_latest()` method supports a `filters` parameter:
+
+```python
+from rialto.runner import Transformation
+from rialto.runner.utils import find_dependency
+
+class MyTransformation(Transformation):
+    def run(self, reader, run_date, spark):
+        # Get dependency config including filters
+        dep = find_dependency(self.pipeline_config, "table1")
+
+        # Read with same filters used in dependency checking
+        df = reader.get_latest(
+            table=dep.table,
+            date_column=dep.date_col,
+            date_until=run_date,
+            filters=dep.filters  # Use filters from config
+        )
+
+        # Your transformation logic here
+        return df
+```
+
+### Runtime Parameterization
 
 The configuration can be dynamically overridden by providing a dictionary of overrides to the runner. All overrides must adhere to configurations schema, with pipeline.extras section available for custom schema.
 Here are few examples of overrides:
@@ -695,7 +826,17 @@ until = datetime.strptime("2020-01-01", "%Y-%m-%d").date()
 
 df = reader.get_latest(table="catalog.schema.table", date_until=until, date_column="information_date")
 
+# most recent partition with filters (for multi-partitioned tables)
+df = reader.get_latest(
+    table="catalog.schema.table",
+    date_column="information_date",
+    date_until=until,
+    filters={"VERSION": "v2", "REGION": "US"}  # Find latest within filtered subset
+)
 ```
+
+The `filters` parameter is particularly useful when working with multi-column partitioned tables. It ensures "latest" means the latest date within the filtered subset, not the latest date overall.
+
 For full information on parameters and their optionality see technical documentation.
 
 _TableReader_ needs an active spark session and an information which column is the **date column**.

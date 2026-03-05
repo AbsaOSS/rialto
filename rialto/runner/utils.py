@@ -27,6 +27,7 @@ from importlib import import_module
 from typing import Dict, List, Optional, Tuple
 
 from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
 
 from rialto.loader import PysparkFeatureLoader
 from rialto.metadata import MetadataManager
@@ -94,7 +95,7 @@ def get_available_dates(spark: SparkSession, table: Table, filters: Optional[Dic
                     f"Filter column '{col}' not found in partitions of {table.get_table_path()}. "
                     f"Available partition columns: {partition_df.columns}"
                 )
-            partition_df = partition_df.filter(partition_df[col] == val)
+            partition_df = partition_df.filter(F.col(col).cast("string") == val)
 
     date_rows = partition_df.select(table.date_column).distinct().collect()
     return [row[table.date_column] for row in date_rows]
