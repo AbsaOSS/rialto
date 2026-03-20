@@ -11,7 +11,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-from pyspark.sql.types import DateType, StringType, StructField, StructType
+from pyspark.sql.types import DateType, IntegerType, StringType, StructField, StructType
 
 from rialto.runner.date_manager import DateManager
 
@@ -22,7 +22,6 @@ simple_group_data = [
 ]
 
 general_schema = StructType([StructField("KEY", StringType(), True), StructField("DATE", DateType(), True)])
-
 
 dep1_data = [
     ("E", DateManager.str_to_date("2023-03-05")),
@@ -36,3 +35,20 @@ dep2_data = [
     ("K", DateManager.str_to_date("2022-12-01")),
     ("L", DateManager.str_to_date("2023-01-01")),
 ]
+
+multi_part_data = [
+    ("W", 1, "A", DateManager.str_to_date("2023-03-05")),
+    ("E", 1, "B", DateManager.str_to_date("2023-03-05")),
+    ("R", 2, "B", DateManager.str_to_date("2023-03-05")),
+    ("T", 1, "B", DateManager.str_to_date("2023-03-12")),
+    ("Y", 2, "A", DateManager.str_to_date("2023-03-19")),
+]
+
+multi_schema = StructType(
+    [
+        StructField("VALUE", StringType(), True),
+        StructField("VERSION", IntegerType(), True),
+        StructField("TYPE", StringType(), True),
+        StructField("DATE", DateType(), True),
+    ]
+)

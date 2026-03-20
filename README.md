@@ -129,9 +129,19 @@ pipelines: # a list of pipelines to run
       interval:
         units: "days"
         value: 6
+      filters:
+        dep_column_name1: "value1"
+        dep_column_name2: "value2"
   target:
       target_schema: catalog.schema # schema where tables will be created, must exist
       target_partition_column: INFORMATION_DATE # date to partition new tables on
+      secondary_partition_columns: # optional list of secondary partitions to ensure partial-overwrite of the target table based on generated data for these partitions
+        - column_name1
+        - column_name2
+      rerun_filters: # optional filters to avoid reruning already generated data for secondary partitionons, if secondary partition values are dynamically generated at runtime, leave this empty but the job will always rerun
+        column_name1: 42
+        column_name2: "some_value"
+      custom_name: "custom_table_name" # optional custom table name, if not provided, the table name will be the same as pipeline name
 ```
 
 The configuration can be dynamically overridden by providing a dictionary of overrides to the runner. All overrides must adhere to configurations schema, with pipeline.extras section available for custom schema.
@@ -188,6 +198,13 @@ overrides={"runner.watched_period_value": 4,
                             "metadata_schema": "catalog.metadata"}
            }
 ```
+
+### Multiple partitions
+Rialto runner and TableReader can handle multiple "partitions", however we only use one primary physical partitions and treat selected columns as other partitions.
+When wanting to write to a selected secondary partition/s, you can specify them in the configuration file as **secondary_partition_columns** and provide values for these columns in **rerun_filters**. This way, the runner will only rerun for the data that matches the filters, and leave the rest of the data intact.
+You can use env variables to set these filters if the values are available before the job run. If not, the job can be setup without these filters, however by defining secondary target partitions, the job will always rerun because it can't determine whether its supposed to run.
+
+You can also take advantage of these **filters** options in dependency configuration to ensure the right data is available.
 
 
 ## <a id="maker"></a> 2.2 - maker

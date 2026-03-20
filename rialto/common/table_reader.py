@@ -99,6 +99,9 @@ class TableReader(DataReader):
         df = df.select(F.max(date_col)).alias("latest")
         return df.head()[0]
 
+    def _get_raw_data(self, table: str) -> DataFrame:
+        return self.spark.read.table(table)
+
     def get_latest(
         self,
         table: str,
@@ -117,7 +120,7 @@ class TableReader(DataReader):
         :param filters: Optional dict of column filters to apply before finding latest date
         :return: Dataframe
         """
-        df = self.spark.read.table(table)
+        df = self._get_raw_data(table)
 
         if filters:
             for col, val in filters.items():
@@ -137,7 +140,7 @@ class TableReader(DataReader):
         date_from: Optional[datetime.date] = None,
         date_to: Optional[datetime.date] = None,
         uppercase_columns: bool = False,
-        filters: Optional[Dict[str, str]] = None,
+        filters: Optional[Dict] = None,
     ) -> DataFrame:
         """
         Get a whole table or a slice by selected dates
@@ -149,7 +152,7 @@ class TableReader(DataReader):
         :param uppercase_columns: Option to refactor all column names to uppercase
         :return: Dataframe
         """
-        df = self.spark.read.table(table)
+        df = self._get_raw_data(table)
 
         if filters:
             for col, val in filters.items():

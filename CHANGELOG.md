@@ -1,6 +1,15 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+
+## 2.2.0 - 2026-03
+ ### Runner
+ - allowing for custom table name (has priority before class name)
+ - added options to add filter on dependencies and target table based on column-value pairs
+ - target table can now selectively write based on secondary virtual partitions
+ ### Common
+  - table reader can also filter based on given column-values pairs
+
 ## 2.1.4 - 2026-02
  ### Common
  - table reader optimization

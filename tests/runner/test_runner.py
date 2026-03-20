@@ -11,52 +11,37 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-from datetime import datetime
-from typing import Optional
-
 import pytest
 from pyspark.sql import DataFrame
 
 import rialto.runner.utils as utils
-from rialto.common.table_reader import DataReader
+from rialto.common.table_reader import TableReader
 from rialto.runner.runner import DateManager, Runner
 from rialto.runner.table import Table
 from tests.runner.runner_resources import (
     dep1_data,
     dep2_data,
     general_schema,
+    multi_part_data,
+    multi_schema,
     simple_group_data,
 )
 from tests.runner.transformations.simple_group import SimpleGroup
 
 
-class MockReader(DataReader):
+class MockReader(TableReader):
     def __init__(self, spark):
         self.spark = spark
 
-    def get_table(
-        self,
-        table: str,
-        date_from: Optional[datetime.date] = None,
-        date_to: Optional[datetime.date] = None,
-        date_column: str = None,
-        uppercase_columns: bool = False,
-    ) -> DataFrame:
+    def _get_raw_data(self, table: str) -> DataFrame:
         if table == "catalog.schema.simple_group":
             return self.spark.createDataFrame(simple_group_data, general_schema)
         if table == "source.schema.dep1":
             return self.spark.createDataFrame(dep1_data, general_schema)
         if table == "source.schema.dep2":
             return self.spark.createDataFrame(dep2_data, general_schema)
-
-    def get_latest(
-        self,
-        table: str,
-        date_until: Optional[datetime.date] = None,
-        date_column: str = None,
-        uppercase_columns: bool = False,
-    ) -> DataFrame:
-        pass
+        if table == "source.schema.multi_part_data":
+            return self.spark.createDataFrame(multi_part_data, multi_schema)
 
 
 def test_table_exists(spark, mocker):
@@ -150,6 +135,37 @@ def test_completion_rerun(spark, mocker, basic_runner):
     assert comp == expected
 
 
+def test_completion_secondary_partitions(spark, mocker, basic_runner):
+    mocker.patch("rialto.runner.utils.table_exists", return_value=True)
+
+    basic_runner.reader = MockReader(spark)
+
+    dates = ["2023-02-26", "2023-03-05", "2023-03-12", "2023-03-19", "2023-03-26"]
+    dates = [DateManager.str_to_date(d) for d in dates]
+    filters = {"version": 1, "type": "A"}
+
+    comp = basic_runner._get_completion(
+        Table(table_path="source.schema.multi_part_data", partition="DATE"), dates, filters
+    )
+    expected = [False, True, False, False, False]
+    assert comp == expected
+
+
+def test_completion_secondary_partitions_no_filter(spark, mocker, basic_runner):
+    mocker.patch("rialto.runner.utils.table_exists", return_value=True)
+
+    basic_runner.reader = MockReader(spark)
+
+    dates = ["2023-02-26", "2023-03-05", "2023-03-12", "2023-03-19", "2023-03-26"]
+    dates = [DateManager.str_to_date(d) for d in dates]
+
+    comp = basic_runner._get_completion(
+        Table(table_path="source.schema.multi_part_data", partition="DATE", secondary_partitions=["VERSION"]), dates
+    )
+    expected = [False, False, False, False, False]
+    assert comp == expected
+
+
 def test_check_dates_have_partition(spark, mocker):
     mocker.patch("rialto.runner.runner.utils.table_exists", return_value=True)
 
@@ -161,7 +177,7 @@ def test_check_dates_have_partition(spark, mocker):
     runner.reader = MockReader(spark)
     dates = ["2023-03-04", "2023-03-05", "2023-03-06"]
     dates = [DateManager.str_to_date(d) for d in dates]
-    res = runner.check_dates_have_partition(Table(schema_path="source.schema", table="dep1", partition="DATE"), dates)
+    res = runner.check_dates_have_data(Table(schema_path="source.schema", table="dep1", partition="DATE"), dates)
     expected = [False, True, False]
     assert res == expected
 
@@ -176,7 +192,7 @@ def test_check_dates_have_partition_no_table(spark, mocker):
     )
     dates = ["2023-03-04", "2023-03-05", "2023-03-06"]
     dates = [DateManager.str_to_date(d) for d in dates]
-    res = runner.check_dates_have_partition(Table(schema_path="source.schema", table="dep66", partition="DATE"), dates)
+    res = runner.check_dates_have_data(Table(schema_path="source.schema", table="dep66", partition="DATE"), dates)
     expected = [False, False, False]
     assert res == expected
 
@@ -192,6 +208,23 @@ def test_check_dependencies(spark, mocker, r_date, expected):
         spark,
         config_path="tests/runner/transformations/config.yaml",
         run_date="2023-03-31",
+    )
+    runner.reader = MockReader(spark)
+    res = runner.check_dependencies(runner.config.pipelines[0], DateManager.str_to_date(r_date))
+    assert res == expected
+
+
+@pytest.mark.parametrize(
+    "r_date, expected",
+    [("2023-03-19", True), ("2023-03-18", False)],
+)
+def test_check_dependencies_filter(spark, mocker, r_date, expected):
+    mocker.patch("rialto.runner.runner.utils.table_exists", return_value=True)
+
+    runner = Runner(
+        spark,
+        config_path="tests/runner/transformations/config3.yaml",
+        run_date="2023-03-19",
     )
     runner.reader = MockReader(spark)
     res = runner.check_dependencies(runner.config.pipelines[0], DateManager.str_to_date(r_date))
@@ -288,3 +321,10 @@ def test_bookkeeping_inactive(spark, mocker):
 
     runner = Runner(spark, config_path="tests/runner/transformations/config2.yaml")
     assert runner.config.runner.bookkeeping is None
+
+
+def test_config_multi_partition(spark, mocker):
+    runner = Runner(spark, config_path="tests/runner/transformations/config3.yaml")
+    assert runner.config.pipelines[0].target.secondary_partition_columns == ["VERSION", "ENV"]
+    assert runner.config.pipelines[0].dependencies[0].filters == {"VERSION": 2, "TYPE": "A"}
+    assert runner.config.pipelines[0].target.rerun_filters == {"version": 3, "env": "dev"}
