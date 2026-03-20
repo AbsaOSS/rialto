@@ -16,7 +16,7 @@ __all__ = ["DataReader", "TableReader"]
 
 import abc
 import datetime
-from typing import Optional
+from typing import Dict, Optional
 
 import pyspark.sql.functions as F
 from pyspark.sql import DataFrame, SparkSession
@@ -37,6 +37,7 @@ class DataReader(metaclass=abc.ABCMeta):
         date_column: str,
         date_until: Optional[datetime.date] = None,
         uppercase_columns: bool = False,
+        filters: Optional[Dict[str, str]] = None,
     ) -> DataFrame:
         """
         Get latest available date partition of the table until specified date
@@ -44,6 +45,7 @@ class DataReader(metaclass=abc.ABCMeta):
         :param table: input table path
         :param date_until: Optional until date (inclusive)
         :param uppercase_columns: Option to refactor all column names to uppercase
+        :param filters: Optional dict of column filters to apply before finding latest date
         :return: Dataframe
         """
         raise NotImplementedError
@@ -56,6 +58,7 @@ class DataReader(metaclass=abc.ABCMeta):
         date_from: Optional[datetime.date] = None,
         date_to: Optional[datetime.date] = None,
         uppercase_columns: bool = False,
+        filters: Optional[Dict[str, str]] = None,
     ) -> DataFrame:
         """
         Get a whole table or a slice by selected dates
@@ -102,6 +105,7 @@ class TableReader(DataReader):
         date_column: str,
         date_until: Optional[datetime.date] = None,
         uppercase_columns: bool = False,
+        filters: Optional[Dict[str, str]] = None,
     ) -> DataFrame:
         """
         Get latest available date partition of the table until specified date
@@ -110,9 +114,14 @@ class TableReader(DataReader):
         :param date_until: Optional until date (inclusive)
         :param date_column: column to filter dates on, takes highest priority
         :param uppercase_columns: Option to refactor all column names to uppercase
+        :param filters: Optional dict of column filters to apply before finding latest date
         :return: Dataframe
         """
         df = self.spark.read.table(table)
+
+        if filters:
+            for col, val in filters.items():
+                df = df.filter(df[col] == val)
 
         selected_date = self._get_latest_available_date(df, date_column, date_until)
         df = df.filter(F.col(date_column) == selected_date)
@@ -128,6 +137,7 @@ class TableReader(DataReader):
         date_from: Optional[datetime.date] = None,
         date_to: Optional[datetime.date] = None,
         uppercase_columns: bool = False,
+        filters: Optional[Dict[str, str]] = None,
     ) -> DataFrame:
         """
         Get a whole table or a slice by selected dates
@@ -140,6 +150,10 @@ class TableReader(DataReader):
         :return: Dataframe
         """
         df = self.spark.read.table(table)
+
+        if filters:
+            for col, val in filters.items():
+                df = df.filter(df[col] == val)
 
         if date_from:
             df = df.filter(F.col(date_column) >= date_from)
