@@ -96,7 +96,7 @@ class Runner:
 
         return df
 
-    def _check_written(self, info_date: date, table: Table, df: DataFrame) -> int:
+    def _check_written(self, info_date: date, table: Table, df: DataFrame, pipeline: PipelineConfig) -> int:
         """
         Check if there are records written for given date
 
@@ -105,11 +105,14 @@ class Runner:
         :return: number of records
         """
         filters = {}
-        if table.secondary_partitions:
-            row = df.select(*table.secondary_partitions).distinct().collect()[0]
-            for c in table.secondary_partitions:
-                val = row[0][c]
-                filters[c] = val
+        if pipeline.target.rerun_filters is not None:
+            filters = pipeline.target.rerun_filters
+        else:
+            if table.secondary_partitions:
+                row = df.select(*table.secondary_partitions).distinct().collect()[0]
+                for c in table.secondary_partitions:
+                    val = row[0][c]
+                    filters[c] = val
 
         df = self.reader.get_table(
             table.get_table_path(), date_column=table.partition, date_from=date, date_to=date, filters=filters
@@ -233,7 +236,7 @@ class Runner:
             feature_group = utils.load_module(pipeline.module)
             df = self._execute(feature_group, run_date, pipeline)
             self.writer.write(df, info_date, target)
-            records = self._check_written(info_date, target, df)
+            records = self._check_written(info_date, target, df, pipeline)
             logger.info(f"Generated {records} records")
             if records == 0:
                 raise RuntimeError("No records generated")

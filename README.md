@@ -32,6 +32,44 @@ This library currently contains:
 Runner is the orchestrator and scheduler of Rialto. It can be used to execute any [job](#jobs) but is primarily designed to execute feature [maker](#maker) jobs.
 The core of runner is execution of a Transformation class that can be extended for any purpose and the execution configuration that defines the handling of i/o, scheduling, dependencies and reporting.
 
+Runner operates on the assumption that your Databricks tables contain a date column (partition column) that indicates the date of data arrival. This enables:
+
+1. **Time-aware computation**: Run operations on dated tables while managing time-related dependencies automatically
+2. **Retrospective simulation**: Run computations as they would have occurred on a specific date by setting `run_date` - ensuring data newer than that date is never used
+3. **Dependency tracking**: Automatically verify that input data meets required freshness constraints relative to the run date
+4. **Automatic completion detection**: Skip computations when output data already exists (configurable with `rerun` parameter)
+
+#### Scheduling and Execution
+
+Runner uses a schedule-based approach:
+* Define a schedule (e.g., weekly on day 2, monthly on day 6) in the configuration
+* Specify a watch period (how far back to look for missing runs)
+* Runner finds all scheduled run dates within the watch period and executes missing ones
+* For each date, dependencies are checked and target existence is verified before execution
+
+#### Data Flow
+
+For each pipeline execution:
+1. **Dependency verification**: Check that all required input tables have data within specified time intervals
+2. **Transformation execution**: Run your transformation to produce a Spark DataFrame
+3. **Automatic enrichment**: Runner adds `INFORMATION_DATE` (the run date) and `VERSION` (package version) columns
+4. **Partitioned write**: Data is written to Databricks with partitioning configuration
+5. **Reporting**: Optional email notifications on failure and run information stored to tracking table
+
+#### Dependency Tracking
+
+Runner's dependency tracking ensures that all required input data is available before executing a pipeline. For each dependency:
+
+* **Date-based checking**: Runner looks for data in the dependency table's date column
+* **Interval calculation**: The required date is calculated by subtracting the dependency's interval from the run date
+* **Existence verification**: Runner checks if data exists for the calculated date (and within any specified filters)
+* **Missing data handling**: If required data is missing, Runner raises an error for that specific pipeline/date but continues executing other pipelines and dates in the queue
+
+**Example:** If you're running a pipeline on 2024-01-15 with a dependency that has a 7-day interval:
+* Runner checks if the dependency table has data for 2024-01-08 (15 days - 7 days)
+* If the dependency has `filters: {VERSION: "v2"}`, it specifically checks for data where VERSION='v2'
+* If data exists, the pipeline proceeds; otherwise, an error is raised for this specific execution, but other scheduled runs continue
+
 ### Transformation
 For the details on the interface see the [implementation](rialto/runner/transformation.py)
 Inside the transformation you have access to a [TableReader](#common), date of running, and if provided to Runner, a live spark session and [metadata manager](#metadata).
@@ -63,6 +101,13 @@ This behavior can be modified by various parameters and switches available.
 Transformations are not included in the runner itself, it imports them dynamically according to the configuration, therefore it's necessary to have them locally installed.
 
 ### Configuration
+
+Runner is supplied with a run configuration that defines the computations it will execute. In each pipeline configuration you define:
+- **Module**: Python transformation class to execute
+- **Schedule**: When to run (daily/weekly/monthly) and on which day
+- **Dependencies**: Input tables to check, with required freshness intervals and optional filters
+- **Target**: Output location, partitioning strategy, and optional completion filters
+
 
 ```yaml
 runner:
