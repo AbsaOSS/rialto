@@ -115,7 +115,7 @@ class Runner:
                     filters[c] = val
 
         df = self.reader.get_table(
-            table.get_table_path(), date_column=table.partition, date_from=date, date_to=date, filters=filters
+            table.get_table_path(), date_column=table.partition, date_from=info_date, date_to=info_date, filters=filters
         )
 
         return df.count()
