@@ -44,6 +44,7 @@ class DependencyConfig(BaseConfig):
     name: Optional[str] = None
     date_col: str
     interval: IntervalConfig
+    filters: Optional[Dict] = None
 
 
 class ModuleConfig(BaseConfig):
@@ -69,6 +70,9 @@ class RunnerConfig(BaseConfig):
 class TargetConfig(BaseConfig):
     target_schema: str
     target_partition_column: str
+    secondary_partition_columns: Optional[List[str]] = None
+    rerun_filters: Optional[Dict] = None
+    custom_name: Optional[str] = None
 
 
 class MetadataManagerConfig(BaseConfig):

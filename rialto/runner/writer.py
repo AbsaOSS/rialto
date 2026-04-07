@@ -74,6 +74,23 @@ class Writer:
 
         return df
 
+    def _get_replace_condition(self, df: DataFrame, partition_cols: List[str]) -> str:
+        row = df.select(*partition_cols).distinct().collect()
+        if len(row) > 1:
+            raise ValueError(f"Some of the partitions to write have more than 1 distinct value \n {row}")
+
+        parts = []
+        for c in partition_cols:
+            val = row[0][c]
+            if val is None:
+                parts.append(f"{c} IS NULL")
+            elif isinstance(val, (int, float)):
+                parts.append(f"{c} = {val}")
+            else:
+                parts.append(f"{c} = '{val}'")
+        condition = " AND ".join(parts)
+        return condition
+
     def write(self, df: DataFrame, info_date: date, table: Table) -> None:
         """
         Write dataframe to storage
@@ -87,10 +104,10 @@ class Writer:
 
         df = self._process(df, info_date, table)
 
-        if self.merge_schema is True:
-            df.write.partitionBy(table.partition).mode("overwrite").option("mergeSchema", "true").saveAsTable(
-                table.get_table_path()
-            )
-        else:
-            df.write.partitionBy(table.partition).mode("overwrite").saveAsTable(table.get_table_path())
+        replace_where = self._get_replace_condition(df, table.get_all_partitions())
+
+        df.write.format("delta").partitionBy(table.partition).mode("overwrite").option(
+            "mergeSchema", "true" if self.merge_schema else "false"
+        ).option("replaceWhere", replace_where).saveAsTable(table.get_table_path())
+
         logger.info(f"Results writen to {table.get_table_path()}")
