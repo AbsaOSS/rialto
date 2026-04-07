@@ -14,6 +14,8 @@
 
 __all__ = ["Table"]
 
+from typing import List
+
 from rialto.metadata import class_to_catalog_name
 
 
@@ -29,11 +31,13 @@ class Table:
         table_path: str = None,
         class_name: str = None,
         partition: str = None,
+        secondary_partitions: List[str] = None,
     ):
         self.catalog = catalog
         self.schema = schema
         self.table = table
         self.partition = partition
+        self.secondary_partitions = secondary_partitions
         if schema_path:
             schema_path = schema_path.split(".")
             self.catalog = schema_path[0]
@@ -43,13 +47,20 @@ class Table:
             self.catalog = table_path[0]
             self.schema = table_path[1]
             self.table = table_path[2]
-        if class_name:
+        if class_name and not table:
             self.table = class_to_catalog_name(class_name)
 
-    def get_schema_path(self):
+    def get_schema_path(self) -> str:
         """Get path of table's schema"""
         return f"{self.catalog}.{self.schema}"
 
-    def get_table_path(self):
+    def get_table_path(self) -> str:
         """Get full table path"""
         return f"{self.catalog}.{self.schema}.{self.table}"
+
+    def get_all_partitions(self) -> List[str]:
+        """Get list of all partitions"""
+        if self.secondary_partitions:
+            return [self.partition] + self.secondary_partitions
+        else:
+            return [self.partition]
