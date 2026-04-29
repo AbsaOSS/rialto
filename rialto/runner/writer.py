@@ -12,8 +12,9 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-__all__ = ["Writer"]
+__all__ = ["DatabricksWriter", "Writer"]
 
+from abc import ABC, abstractmethod
 from datetime import date
 from typing import List
 
@@ -24,8 +25,24 @@ from pyspark.sql import DataFrame, SparkSession
 from rialto.runner.table import Table
 
 
-class Writer:
+class Writer(ABC):
     """Supporting class for runner"""
+
+    @abstractmethod
+    def write(self, df: DataFrame, info_date: date, table: Table) -> None:
+        """
+        Write dataframe to storage
+
+        :param df: dataframe to write
+        :param info_date: date to partition
+        :param table: path to write to
+        :return: None
+        """
+        pass
+
+
+class DatabricksWriter(Writer):
+    """Supporting class for runner, Databricks write operations"""
 
     def __init__(self, spark: SparkSession, merge_schema=False):
         self.spark = spark
@@ -104,7 +121,7 @@ class Writer:
 
         df = self._process(df, info_date, table)
 
-        replace_where = self._get_replace_condition(df, table.get_all_partitions())
+        replace_where = self._get_replace_condition(df, table.get_all_partition_columns())
 
         df.write.format("delta").partitionBy(table.partition).mode("overwrite").option(
             "mergeSchema", "true" if self.merge_schema else "false"

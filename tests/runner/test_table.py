@@ -31,13 +31,13 @@ def test_table_path_init():
 def test_table_secondary_partitions():
     t = Table(catalog="cat", schema="sch", table="tab", partition="part", secondary_partitions=["sec1", "sec2"])
 
-    assert t.get_all_partitions() == ["part", "sec1", "sec2"]
+    assert t.get_all_partition_columns() == ["part", "sec1", "sec2"]
 
 
 def test_table_get_partitions_only_main():
     t = Table(catalog="cat", schema="sch", table="tab", partition="part")
 
-    assert t.get_all_partitions() == ["part"]
+    assert t.get_all_partition_columns() == ["part"]
 
 
 def test_table_prioritize_table_name():

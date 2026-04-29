@@ -61,7 +61,7 @@ def test_all_dates_reversed():
 def test_run_dates_weekly():
     cfg = ScheduleConfig(frequency="weekly", day=5)
 
-    run_dates = DateManager.run_dates(
+    run_dates = DateManager.execution_dates(
         date_from=DateManager.str_to_date("2023-02-05"),
         date_to=DateManager.str_to_date("2023-04-07"),
         schedule=cfg,
@@ -85,7 +85,7 @@ def test_run_dates_weekly():
 def test_run_dates_monthly():
     cfg = ScheduleConfig(frequency="monthly", day=5)
 
-    run_dates = DateManager.run_dates(
+    run_dates = DateManager.execution_dates(
         date_from=DateManager.str_to_date("2022-08-05"),
         date_to=DateManager.str_to_date("2023-04-07"),
         schedule=cfg,
@@ -109,7 +109,7 @@ def test_run_dates_monthly():
 def test_run_dates_daily():
     cfg = ScheduleConfig(frequency="daily")
 
-    run_dates = DateManager.run_dates(
+    run_dates = DateManager.execution_dates(
         date_from=DateManager.str_to_date("2023-03-28"),
         date_to=DateManager.str_to_date("2023-04-03"),
         schedule=cfg,
@@ -131,7 +131,7 @@ def test_run_dates_daily():
 def test_run_dates_invalid():
     cfg = ScheduleConfig(frequency="random")
     with pytest.raises(ValueError) as exception:
-        DateManager.run_dates(
+        DateManager.execution_dates(
             date_from=DateManager.str_to_date("2023-03-28"),
             date_to=DateManager.str_to_date("2023-04-03"),
             schedule=cfg,
@@ -146,7 +146,7 @@ def test_run_dates_invalid():
 def test_to_info_date(shift, res):
     cfg = ScheduleConfig(frequency="daily", info_date_shift=[IntervalConfig(units="days", value=shift)])
     base = DateManager.str_to_date("2023-03-05")
-    info = DateManager.to_info_date(base, cfg)
+    info = DateManager.to_partition_date(base, cfg)
     assert DateManager.str_to_date(res) == info
 
 
@@ -157,7 +157,7 @@ def test_to_info_date(shift, res):
 def test_info_date_shift_units(unit, result):
     cfg = ScheduleConfig(frequency="daily", info_date_shift=[IntervalConfig(units=unit, value=3)])
     base = DateManager.str_to_date("2023-03-05")
-    info = DateManager.to_info_date(base, cfg)
+    info = DateManager.to_partition_date(base, cfg)
     assert DateManager.str_to_date(result) == info
 
 
@@ -167,5 +167,5 @@ def test_info_date_shift_combined():
         info_date_shift=[IntervalConfig(units="months", value=3), IntervalConfig(units="days", value=4)],
     )
     base = DateManager.str_to_date("2023-03-05")
-    info = DateManager.to_info_date(base, cfg)
+    info = DateManager.to_partition_date(base, cfg)
     assert DateManager.str_to_date("2022-12-01") == info

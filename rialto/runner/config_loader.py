@@ -13,7 +13,7 @@
 #  limitations under the License.
 
 __all__ = [
-    "get_pipelines_config",
+    "ConfigLoader",
 ]
 
 from typing import Dict, List, Optional
@@ -108,3 +108,12 @@ def get_pipelines_config(path: str, overrides: Dict) -> PipelinesConfig:
         return PipelinesConfig(**cfg)
     else:
         return PipelinesConfig(**raw_config)
+
+
+class ConfigLoader:
+    """Loader for pipelines config"""
+
+    @staticmethod
+    def load_yaml(path: str, overrides: Dict) -> PipelinesConfig:
+        """Load yaml config and apply overrides"""
+        return get_pipelines_config(path, overrides)

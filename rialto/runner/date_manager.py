@@ -17,7 +17,9 @@ __all__ = ["DateManager"]
 from datetime import date, datetime
 from typing import List
 
+from config_loader import PipelinesConfig
 from dateutil.relativedelta import relativedelta
+from loguru import logger
 
 from rialto.runner.config_loader import ScheduleConfig
 
@@ -25,8 +27,46 @@ from rialto.runner.config_loader import ScheduleConfig
 class DateManager:
     """Date generation and shifts based on configuration"""
 
-    @staticmethod
-    def str_to_date(str_date: str) -> date:
+    def __init__(self, config: PipelinesConfig, run_date: date = None):
+        if run_date:
+            run_date = DateManager.str_to_date(run_date)
+        else:
+            run_date = date.today()
+
+        self.date_from = self.date_subtract(
+            run_date=run_date,
+            units=self.config.runner.watched_period_units,
+            value=self.config.runner.watched_period_value,
+        )
+
+        self.date_until = run_date
+
+        if self.date_from > self.date_until:
+            raise ValueError(f"Invalid date range from {self.date_from} until {self.date_until}")
+        logger.info(f"Running period set to: {self.date_from} - {self.date_until}")
+
+    def get_date_from(self) -> date:
+        """Get starting date of the execution window"""
+        return self.date_from
+
+    def get_date_until(self) -> date:
+        """Get ending date of the execution window"""
+        return self.date_until
+
+    def get_execution_and_partition_dates(self, schedule: ScheduleConfig) -> List[(date, date)]:
+        """
+        Get list of execution and partition dates for given configuration
+
+        :return: List of tuples with execution and partition dates
+        """
+        datepairs = []
+        execution = self.execution_dates(schedule)
+        for ex_date in execution:
+            partition = self.to_partition_date(ex_date, schedule)
+            datepairs.append((ex_date, partition))
+        return datepairs
+
+    def str_to_date(self, str_date: str) -> date:
         """
         Convert YYYY-MM-DD string to date
 
@@ -35,8 +75,7 @@ class DateManager:
         """
         return datetime.strptime(str_date, "%Y-%m-%d").date()
 
-    @staticmethod
-    def date_subtract(run_date: date, units: str, value: int) -> date:
+    def date_subtract(self, run_date: date, units: str, value: int) -> date:
         """
         Generate starting date from given date and config
 
@@ -55,8 +94,7 @@ class DateManager:
             return run_date - relativedelta(days=value)
         raise ValueError(f"Unknown time unit {units}")
 
-    @staticmethod
-    def all_dates(date_from: date, date_to: date) -> List[date]:
+    def all_dates(self, date_from: date, date_to: date) -> List[date]:
         """
         Get list of all dates between, inclusive
 
@@ -69,17 +107,14 @@ class DateManager:
 
         return [date_from + relativedelta(days=n) for n in range((date_to - date_from).days + 1)]
 
-    @staticmethod
-    def run_dates(date_from: date, date_to: date, schedule: ScheduleConfig) -> List[date]:
+    def execution_dates(self, schedule: ScheduleConfig) -> List[date]:
         """
         Select dates inside given interval depending on frequency and selected day
 
-        :param date_from: interval start
-        :param date_to: interval end
         :param schedule: schedule config
         :return: list of dates
         """
-        options = DateManager.all_dates(date_from, date_to)
+        options = self.all_dates(self.date_from, self.date_to)
         if schedule.frequency == "daily":
             return options
         if schedule.frequency == "weekly":
@@ -88,8 +123,7 @@ class DateManager:
             return [x for x in options if x.day == schedule.day]
         raise ValueError(f"Unknown frequency {schedule.frequency}")
 
-    @staticmethod
-    def to_info_date(date: date, schedule: ScheduleConfig) -> date:
+    def to_partition_date(self, date: date, schedule: ScheduleConfig) -> date:
         """
         Shift given date according to config
 
@@ -99,9 +133,7 @@ class DateManager:
         """
         if isinstance(schedule.info_date_shift, List):
             for shift in schedule.info_date_shift:
-                date = DateManager.date_subtract(date, units=shift.units, value=shift.value)
+                date = self.date_subtract(date, units=shift.units, value=shift.value)
         else:
-            date = DateManager.date_subtract(
-                date, units=schedule.info_date_shift.units, value=schedule.info_date_shift.value
-            )
+            date = self.date_subtract(date, units=schedule.info_date_shift.units, value=schedule.info_date_shift.value)
         return date

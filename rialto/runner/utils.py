@@ -12,19 +12,16 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-__all__ = ["load_module", "table_exists", "get_partitions", "init_tools", "find_dependency"]
+__all__ = ["load_module", "init_tools", "find_dependency"]
 
-from datetime import date
 from importlib import import_module
-from typing import List, Tuple
+from typing import Tuple
 
 from pyspark.sql import SparkSession
 
-from rialto.common import DataReader
 from rialto.loader import PysparkFeatureLoader
 from rialto.metadata import MetadataManager
 from rialto.runner.config_loader import ModuleConfig, PipelineConfig
-from rialto.runner.table import Table
 from rialto.runner.transformation import Transformation
 
 
@@ -38,32 +35,6 @@ def load_module(cfg: ModuleConfig) -> Transformation:
     module = import_module(cfg.python_module)
     class_obj = getattr(module, cfg.python_class)
     return class_obj()
-
-
-def table_exists(spark: SparkSession, table: str) -> bool:
-    """
-    Check table exists in spark catalog
-
-    :param table: full table path
-    :return: bool
-    """
-    return spark.catalog.tableExists(table)
-
-
-def get_partitions(reader: DataReader, table: Table) -> List[date]:
-    """
-    Get partition values
-
-    :param table: Table object
-    :return: List of partition values
-    """
-    rows = (
-        reader.get_table(table.get_table_path(), date_column=table.partition)
-        .select(table.partition)
-        .distinct()
-        .collect()
-    )
-    return [r[table.partition] for r in rows]
 
 
 def init_tools(spark: SparkSession, pipeline: PipelineConfig) -> Tuple[MetadataManager, PysparkFeatureLoader]:

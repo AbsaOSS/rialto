@@ -165,3 +165,12 @@ class TableReader(DataReader):
         if uppercase_columns:
             df = self._uppercase_column_names(df)
         return df
+
+    def table_exists(self, table: str) -> bool:
+        """
+        Check table exists in spark catalog
+
+        :param table: full table path
+        :return: bool
+        """
+        return self.spark.catalog.tableExists(table)

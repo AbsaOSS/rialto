@@ -14,13 +14,48 @@
 
 __all__ = ["Table"]
 
-from typing import List
+from typing import Dict, List
+
+from config_loader import DependencyConfig, PipelineConfig
 
 from rialto.metadata import class_to_catalog_name
 
 
 class Table:
     """Handler for databricks catalog paths"""
+
+    @classmethod
+    def from_target_config(cls, config: PipelineConfig) -> "Table":
+        """
+        Create table object from pipeline config target section
+
+        :param config: Pipeline configuration
+
+        :return: Table object
+        """
+        return cls(
+            schema_path=config.target.target_schema,
+            class_name=config.module.python_class,
+            partition=config.target.target_partition_column,
+            secondary_partitions=config.target.secondary_partition_columns,
+            table=config.target.custom_name,
+            filters=config.target.filters,
+        )
+
+    @classmethod
+    def from_dependency_config(cls, config: DependencyConfig) -> "Table":
+        """
+        Create table object from pipeline config dependency section
+
+        :param config: Dependency configuration
+
+        :return: Table object
+        """
+        return cls(
+            table_path=config.table,
+            partition=config.date_col,
+            filters=config.filters,
+        )
 
     def __init__(
         self,
@@ -32,12 +67,14 @@ class Table:
         class_name: str = None,
         partition: str = None,
         secondary_partitions: List[str] = None,
+        filters: Dict = None,
     ):
         self.catalog = catalog
         self.schema = schema
         self.table = table
         self.partition = partition
         self.secondary_partitions = secondary_partitions
+        self.filters = filters
         if schema_path:
             schema_path = schema_path.split(".")
             self.catalog = schema_path[0]
@@ -58,7 +95,7 @@ class Table:
         """Get full table path"""
         return f"{self.catalog}.{self.schema}.{self.table}"
 
-    def get_all_partitions(self) -> List[str]:
+    def get_all_partition_columns(self) -> List[str]:
         """Get list of all partitions"""
         if self.secondary_partitions:
             return [self.partition] + self.secondary_partitions
