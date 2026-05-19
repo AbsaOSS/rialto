@@ -27,14 +27,13 @@ class DateManager:
     """Date generation and shifts based on configuration"""
 
     def __init__(self, config: PipelinesConfig, run_date: date = None):
-        self.config = config
         if run_date:
             run_date = self.str_to_date(run_date)
         else:
             run_date = date.today()
 
         self.date_from = self.date_subtract(
-            run_date=run_date,
+            input_date=run_date,
             units=self.config.runner.watched_period_units,
             value=self.config.runner.watched_period_value,
         )
@@ -53,19 +52,7 @@ class DateManager:
         """Get ending date of the execution window"""
         return self.date_until
 
-    def get_execution_and_partition_dates(self, schedule: ScheduleConfig) -> List[tuple[date, date]]:
-        """
-        Get list of execution and partition dates for given configuration
-
-        :return: List of tuples with execution and partition dates
-        """
-        datepairs = []
-        execution = self.execution_dates(schedule)
-        for ex_date in execution:
-            partition = self.to_partition_date(ex_date, schedule)
-            datepairs.append((ex_date, partition))
-        return datepairs
-
+    @staticmethod
     def str_to_date(self, str_date: str) -> date:
         """
         Convert YYYY-MM-DD string to date
@@ -73,27 +60,32 @@ class DateManager:
         :param str_date: string date
         :return: date
         """
-        return datetime.strptime(str_date, "%Y-%m-%d").date()
+        try:
+            return datetime.strptime(str_date, "%Y-%m-%d").date()
+        except ValueError:
+            raise ValueError(f"Invalid date format: {str_date}. Expected YYYY-MM-DD.")
 
-    def date_subtract(self, run_date: date, units: str, value: int) -> date:
+    @staticmethod
+    def date_subtract(self, input_date: date, units: str, value: int) -> date:
         """
-        Generate starting date from given date and config
+        Subtract given number of units from input date
 
-        :param run_date: base date
+        :param input_date: base date
         :param units: units: years, months, weeks, days
         :param value: number of units to subtract
         :return: Starting date
         """
         if units == "years":
-            return run_date - relativedelta(years=value)
+            return input_date - relativedelta(years=value)
         if units == "months":
-            return run_date - relativedelta(months=value)
+            return input_date - relativedelta(months=value)
         if units == "weeks":
-            return run_date - relativedelta(weeks=value)
+            return input_date - relativedelta(weeks=value)
         if units == "days":
-            return run_date - relativedelta(days=value)
+            return input_date - relativedelta(days=value)
         raise ValueError(f"Unknown time unit {units}")
 
+    @staticmethod
     def all_dates(self, date_from: date, date_to: date) -> List[date]:
         """
         Get list of all dates between, inclusive
@@ -107,23 +99,39 @@ class DateManager:
 
         return [date_from + relativedelta(days=n) for n in range((date_to - date_from).days + 1)]
 
-    def execution_dates(self, schedule: ScheduleConfig) -> List[date]:
+    def get_execution_and_partition_dates(self, schedule: ScheduleConfig) -> List[tuple[date, date]]:
+        """
+        Get list of execution and partition dates for given configuration
+
+        :return: List of tuples with execution and partition dates
+        """
+        execution_dates = self._execution_dates(schedule)
+        return [(ex_date, self._to_partition_date(ex_date, schedule)) for ex_date in execution_dates]
+
+    def _execution_dates(self, schedule: ScheduleConfig) -> List[date]:
         """
         Select dates inside given interval depending on frequency and selected day
 
         :param schedule: schedule config
-        :return: list of dates
+        :return: List of execution dates
         """
         options = self.all_dates(self.date_from, self.date_until)
-        if schedule.frequency == "daily":
+        frequency = schedule.frequency.lower()
+        if frequency == "daily":
             return options
-        if schedule.frequency == "weekly":
+        if frequency == "weekly":
+            if not (1 <= schedule.day <= 7):
+                raise ValueError(f"Invalid day for weekly frequency: {schedule.day}. Must be 1-7.")
             return [x for x in options if x.isoweekday() == schedule.day]
-        if schedule.frequency == "monthly":
+        if frequency == "monthly":
+            if schedule.day == "last":
+                return [x for x in options if (x + relativedelta(days=1)).month != x.month]
+            if not (1 <= schedule.day <= 31):
+                raise ValueError(f"Invalid day for monthly frequency: {schedule.day}. Must be 1-31 or last.")
             return [x for x in options if x.day == schedule.day]
-        raise ValueError(f"Unknown frequency {schedule.frequency}")
+        raise ValueError(f"Unknown frequency: {schedule.frequency}")
 
-    def to_partition_date(self, date: date, schedule: ScheduleConfig) -> date:
+    def _to_partition_date(self, date: date, schedule: ScheduleConfig) -> date:
         """
         Shift given date according to config
 
@@ -131,7 +139,7 @@ class DateManager:
         :param schedule: schedule config
         :return: date
         """
-        if isinstance(schedule.info_date_shift, List):
+        if isinstance(schedule.info_date_shift, list):
             for shift in schedule.info_date_shift:
                 date = self.date_subtract(date, units=shift.units, value=shift.value)
         else:

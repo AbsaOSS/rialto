@@ -58,7 +58,6 @@ class Runner:
         self.executor = PipelineExecutor(
             spark=self.spark,
             reader=self.reader,
-            writer=self.writer,
             checker=self.checker,
             tracker=self.tracker,
         )
@@ -88,12 +87,14 @@ class Runner:
     def _run_tasks(self) -> None:
         for task in self.planner.tasks:
             if not task.completion and task.dependencies_complete:
-                self.executor.execute(task)
+                # run_start = datetime.now()
+                df = self.executor.execute(task)
+                self.writer.write(df, task.partition_date, task.target)
+                # records = self.checker.check_written(task.target, task.partition_date, df)
 
     def __call__(self):
         """Execute pipelines"""
         pipelines = self._select_pipelines()
-
         self._register_tasks(pipelines)
         self._check_tasks()
         self.planner.log_status()
@@ -102,10 +103,12 @@ class Runner:
     def dry_run(self):
         """Dry run - log status of pipelines without executing"""
         pipelines = self._select_pipelines()
-
         self._register_tasks(pipelines)
         self._check_tasks()
         self.planner.log_status()
 
     def debug(self) -> DataFrame:
         """Debug mode - run only first op for one date and return the resulting dataframe"""
+        pipelines = self._select_pipelines()
+        self._register_tasks(pipelines)
+        return self.executor.execute(self.planner.tasks[0])

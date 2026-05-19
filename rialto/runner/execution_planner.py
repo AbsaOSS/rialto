@@ -11,15 +11,14 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+
 from dataclasses import dataclass, field
 from datetime import date
-from typing import List
+from typing import Iterator, List
 
 from loguru import logger
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import SparkSession
 
-import rialto.runner.utils as utils
-from rialto.common import DataReader
 from rialto.runner.config_loader import PipelineConfig
 from rialto.runner.data_checker import DataChecker
 from rialto.runner.date_manager import DateManager
@@ -45,7 +44,7 @@ class Task:
     partition_date: date
     config: PipelineConfig
     target: Table
-    dependencies: List = field(default_factory=list)
+    dependencies: List[Dependency] = field(default_factory=list)
     completion: bool = False
     dependencies_complete: bool = False
 
@@ -84,7 +83,7 @@ class ExecutionPlanner:
 
         self.tasks.append(new_pipe)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Task]:
         """Allow iteration over tasks in execution plan"""
         return iter(self.tasks)
 
@@ -135,25 +134,3 @@ class ExecutionPlanner:
                     f"{dependency.date_from} - {dependency.date_until}: {dependency.complete}"
                 )
         pipeline.dependencies_complete = all([dependency.complete for dependency in pipeline.dependencies])
-
-    def execute_pipeline(self, pipeline: Task, reader: DataReader) -> DataFrame:
-        """
-        Execute the pipeline, assuming all dependencies are complete and pipeline is not already complete
-
-        :param pipeline: Pipeline object to execute
-        :param reader: DataReader instance to use for reading data
-
-        :return: DataFrame output from pipeline execution
-        """
-        logger.info(f"Executing pipeline {pipeline.op} for partition date {pipeline.partition_date}")
-        job = utils.load_module(pipeline.config.module)
-        metadata_manager, feature_loader = utils.init_tools(self.spark, pipeline.config)
-        df = job.run(
-            spark=self.spark,
-            run_date=pipeline.execution_date,
-            config=pipeline.config,
-            reader=reader,
-            metadata_manager=metadata_manager,
-            feature_loader=feature_loader,
-        )
-        return df
