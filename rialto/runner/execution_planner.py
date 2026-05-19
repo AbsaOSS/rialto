@@ -15,11 +15,14 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import List
 
-from config_loader import PipelineConfig
-from date_manager import DateManager
 from loguru import logger
+from pyspark.sql import DataFrame, SparkSession
 
+import rialto.runner.utils as utils
+from rialto.common import DataReader
+from rialto.runner.config_loader import PipelineConfig
 from rialto.runner.data_checker import DataChecker
+from rialto.runner.date_manager import DateManager
 from rialto.runner.table import Table
 
 
@@ -34,7 +37,7 @@ class Dependency:
 
 
 @dataclass
-class Pipeline:
+class Task:
     """Class representing a pipeline to be executed."""
 
     op: str
@@ -46,48 +49,18 @@ class Pipeline:
     completion: bool = False
     dependencies_complete: bool = False
 
-    def check_completion(self, checker: DataChecker, rerun: bool) -> None:
-        """
-        Check if pipeline is complete by checking if target data exists for partition date
-
-        :param checker: DataChecker instance to use for checking data presence
-        :param rerun: If True, skip completion check to allow re-running of completed pipelines
-
-        :return: None, updates self.completion attribute
-        """
-        if not rerun:
-            self.completion = checker.check_date(self.target, self.partition_date)
-            logger.info(f"Job {self.op} completion status for partition date {self.partition_date}: {self.completion}")
-
-    def check_dependencies_complete(self, checker, skip_dependencies: bool) -> None:
-        """
-        Check if dependencies are complete by checking if data exists for each dependency in date range
-
-        :param checker: DataChecker instance to use for checking data presence
-        :param skip_dependencies: Skip dependency checks to allow running pipelines with incomplete dependencies
-
-        :return: None, updates self.dependencies_complete attribute
-        """
-        if not skip_dependencies:
-            for dependency in self.dependencies:
-                dependency.complete = checker.check_range(dependency.table, dependency.date_from, dependency.date_until)
-                logger.info(
-                    f"Dependency {dependency.table.get_table_path()} completion status for date range "
-                    f"{dependency.date_from} - {dependency.date_until}: {dependency.complete}"
-                )
-        self.dependencies_complete = all([dependency.complete for dependency in self.dependencies])
-
 
 class ExecutionPlanner:
     """Planner for pipeline execution, managing tasks and their dependencies"""
 
-    def __init__(self, date_manager: DateManager):
+    def __init__(self, spark: SparkSession, date_manager: DateManager):
+        self.spark = spark
         self.date_manager = date_manager
         self.tasks = []
 
-    def add_pipeline(self, name: str, execution_date: date, partition_date: date, config: PipelineConfig) -> None:
+    def add_task(self, name: str, execution_date: date, partition_date: date, config: PipelineConfig) -> None:
         """
-        Add pipeline to execution plan
+        Add task to execution plan
 
         :param name: Name of the pipeline
         :param execution_date: Date when the pipeline is scheduled to run
@@ -97,7 +70,7 @@ class ExecutionPlanner:
         :return: None, adds a Pipeline object to self.tasks
         """
         target = Table.from_target_config(config)
-        new_pipe = Pipeline(
+        new_pipe = Task(
             op=name, execution_date=execution_date, partition_date=partition_date, config=config, target=target
         )
 
@@ -119,9 +92,68 @@ class ExecutionPlanner:
         """Log status of all tasks in execution plan, showing completion and dependency status"""
         check = "\u2714"  # ✔
         cross = "\u2718"  # ✘
-        logger.info(f"{'Job Name':<25} {'Partition Date':<15} {'Complete':<10} {'Deps Complete':<15}")
-        logger.info("-" * 70)
+        status = f"\n{'Job Name':<50} {'Partition Date':<15} {'Complete':<8} {'Dependencies':<12}\n"
+        status = status + ("-" * 70 + "\n")
         for task in self.tasks:
             complete_icon = check if task.completion else cross
             deps_icon = check if task.dependencies_complete else cross
-            logger.info(f"{task.op:<25} {str(task.partition_date):<15} {complete_icon:^10} {deps_icon:^15}")
+            status = status + f"{task.op:<50} {str(task.partition_date):<15} {complete_icon:^8} {deps_icon:^12}\n"
+        logger.info(status)
+
+    def check_completion(self, pipeline: Task, checker: DataChecker, rerun: bool) -> None:
+        """
+        Check if pipeline is complete by checking if target data exists for partition date
+
+        :param pipeline: Pipeline object for which to check completion
+        :param checker: DataChecker instance to use for checking data presence
+        :param rerun: If True, skip completion check to allow re-running of completed pipelines
+
+        :return: None, updates self.completion attribute
+        """
+        if not rerun:
+            pipeline.completion = checker.check_date(pipeline.target, pipeline.partition_date)
+            logger.info(
+                f"Job {pipeline.op} completion status for partition date "
+                f"{pipeline.partition_date}: {pipeline.completion}"
+            )
+
+    def check_pipeline_dependencies(self, pipeline: Task, checker: DataChecker, skip_dependencies: bool) -> None:
+        """
+        Check if dependencies are complete by checking if data exists for each dependency in date range
+
+        :param pipeline: Pipeline object for which to check dependencies
+        :param checker: DataChecker instance to use for checking data presence
+        :param skip_dependencies: Skip dependency checks to allow running pipelines with incomplete dependencies
+
+        :return: None, updates self.dependencies_complete attribute
+        """
+        if not skip_dependencies:
+            for dependency in pipeline.dependencies:
+                dependency.complete = checker.check_range(dependency.table, dependency.date_from, dependency.date_until)
+                logger.info(
+                    f"Dependency {dependency.table.get_table_path()} completion status for date range "
+                    f"{dependency.date_from} - {dependency.date_until}: {dependency.complete}"
+                )
+        pipeline.dependencies_complete = all([dependency.complete for dependency in pipeline.dependencies])
+
+    def execute_pipeline(self, pipeline: Task, reader: DataReader) -> DataFrame:
+        """
+        Execute the pipeline, assuming all dependencies are complete and pipeline is not already complete
+
+        :param pipeline: Pipeline object to execute
+        :param reader: DataReader instance to use for reading data
+
+        :return: DataFrame output from pipeline execution
+        """
+        logger.info(f"Executing pipeline {pipeline.op} for partition date {pipeline.partition_date}")
+        job = utils.load_module(pipeline.config.module)
+        metadata_manager, feature_loader = utils.init_tools(self.spark, pipeline.config)
+        df = job.run(
+            spark=self.spark,
+            run_date=pipeline.execution_date,
+            config=pipeline.config,
+            reader=reader,
+            metadata_manager=metadata_manager,
+            feature_loader=feature_loader,
+        )
+        return df

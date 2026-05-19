@@ -16,9 +16,8 @@ __all__ = ["Table"]
 
 from typing import Dict, List
 
-from config_loader import DependencyConfig, PipelineConfig
-
 from rialto.metadata import class_to_catalog_name
+from rialto.runner.config_loader import DependencyConfig, PipelineConfig
 
 
 class Table:
@@ -39,7 +38,7 @@ class Table:
             partition=config.target.target_partition_column,
             secondary_partitions=config.target.secondary_partition_columns,
             table=config.target.custom_name,
-            filters=config.target.filters,
+            filters=config.target.rerun_filters,
         )
 
     @classmethod

@@ -17,17 +17,17 @@ __all__ = ["DateManager"]
 from datetime import date, datetime
 from typing import List
 
-from config_loader import PipelinesConfig
 from dateutil.relativedelta import relativedelta
 from loguru import logger
 
-from rialto.runner.config_loader import ScheduleConfig
+from rialto.runner.config_loader import PipelinesConfig, ScheduleConfig
 
 
 class DateManager:
     """Date generation and shifts based on configuration"""
 
     def __init__(self, config: PipelinesConfig, run_date: date = None):
+        self.config = config
         if run_date:
             run_date = DateManager.str_to_date(run_date)
         else:
@@ -53,7 +53,7 @@ class DateManager:
         """Get ending date of the execution window"""
         return self.date_until
 
-    def get_execution_and_partition_dates(self, schedule: ScheduleConfig) -> List[(date, date)]:
+    def get_execution_and_partition_dates(self, schedule: ScheduleConfig) -> List[tuple[date, date]]:
         """
         Get list of execution and partition dates for given configuration
 
@@ -114,7 +114,7 @@ class DateManager:
         :param schedule: schedule config
         :return: list of dates
         """
-        options = self.all_dates(self.date_from, self.date_to)
+        options = self.all_dates(self.date_from, self.date_until)
         if schedule.frequency == "daily":
             return options
         if schedule.frequency == "weekly":

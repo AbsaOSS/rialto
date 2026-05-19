@@ -14,19 +14,16 @@
 
 __all__ = ["Runner"]
 
-from datetime import datetime
 from typing import Dict, List
 
-from execution_planner import ExecutionPlanner
-from loguru import logger
 from pyspark.sql import DataFrame, SparkSession
 
-import rialto.runner.utils as utils
 from rialto.common import TableReader
 from rialto.runner.config_loader import ConfigLoader, PipelineConfig
 from rialto.runner.data_checker import DataChecker
 from rialto.runner.date_manager import DateManager
-from rialto.runner.reporting.record import Record
+from rialto.runner.execution_planner import ExecutionPlanner
+from rialto.runner.executor import PipelineExecutor
 from rialto.runner.reporting.tracker import Tracker
 from rialto.runner.writer import DatabricksWriter
 
@@ -57,7 +54,14 @@ class Runner:
             mail_cfg=self.config.runner.mail, bookkeeping=self.config.runner.bookkeeping, spark=spark
         )
         self.date_manager = DateManager(self.config, run_date)
-        self.planner = ExecutionPlanner()
+        self.planner = ExecutionPlanner(spark, date_manager=self.date_manager)
+        self.executor = PipelineExecutor(
+            spark=self.spark,
+            reader=self.reader,
+            writer=self.writer,
+            checker=self.checker,
+            tracker=self.tracker,
+        )
 
     def _select_pipelines(self) -> List[PipelineConfig]:
         """Select pipelines to run based on config and input parameters"""
@@ -69,56 +73,39 @@ class Runner:
         else:
             return self.config.pipelines
 
+    def _register_tasks(self, pipelines: List[PipelineConfig]) -> None:
+        for pipeline in pipelines:
+            for exec_date, partition_date in self.date_manager.get_execution_and_partition_dates(pipeline.schedule):
+                self.planner.add_task(
+                    name=pipeline.name, execution_date=exec_date, partition_date=partition_date, config=pipeline
+                )
+
+    def _check_tasks(self) -> None:
+        for task in self.planner.tasks:
+            self.planner.check_completion(task, self.checker, self.rerun)
+            self.planner.check_pipeline_dependencies(task, self.checker, self.skip_dependencies)
+
+    def _run_tasks(self) -> None:
+        for task in self.planner.tasks:
+            if not task.completion and task.dependencies_complete:
+                self.executor.execute(task)
+
     def __call__(self):
         """Execute pipelines"""
         pipelines = self._select_pipelines()
 
-        # Register pipelines in execution planner with their execution and partition dates
-        for pipeline in pipelines:
-            exec_date, partition_date = self.date_manager.get_execution_and_partition_dates(pipeline.schedule)
-            self.planner.add_pipeline(
-                name=pipeline.name, execution_date=exec_date, partition_date=partition_date, config=pipeline
-            )
-
-        for task in self.planner.tasks:
-            task.check_completion(self.checker, self.rerun)
-            task.check_dependencies_complete(self.checker, self.skip_dependencies)
-
+        self._register_tasks(pipelines)
+        self._check_tasks()
         self.planner.log_status()
+        self._run_tasks()
 
-        # TODO everything bellow is just temporary
-        for task in self.planner.tasks:
-            if not task.completion and task.dependencies_complete:
-                logger.info(f"Running pipeline {task.op} for partition date {task.partition_date}")
-                job = utils.load_module(task.config.module)
-                metadata_manager, feature_loader = utils.init_tools(self.spark, task.config)
-                run_start = datetime.now()
-                df = job.run(
-                    spark=self.spark,
-                    run_date=task.execution_date,
-                    config=task.config,
-                    reader=self.reader,
-                    metadata_manager=metadata_manager,
-                    feature_loader=feature_loader,
-                )
-                self.writer.write(df, task.partition_date, task.target)
-                records = self.checker.check_written(task.target, task.package, df)
+    def dry_run(self):
+        """Dry run - log status of pipelines without executing"""
+        pipelines = self._select_pipelines()
 
-                self.tracker.add(
-                    Record(
-                        job=task.op,
-                        target=task.target.get_table_path(),
-                        date=task.partition_date,
-                        time=datetime.now() - run_start,
-                        records=records,
-                        status="status",
-                        reason="message",
-                    )
-                )
-
-        # 6. run the pipeline for dates with completed dependencies
-        # 7. write results
-        # 8. sumbit tracking
+        self._register_tasks(pipelines)
+        self._check_tasks()
+        self.planner.log_status()
 
     def debug(self) -> DataFrame:
         """Debug mode - run only first op for one date and return the resulting dataframe"""
