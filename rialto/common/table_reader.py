@@ -71,6 +71,16 @@ class DataReader(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def table_exists(self, table: str) -> bool:
+        """
+        Check table exists in storage
+
+        :param table: full table path
+        :return: bool
+        """
+        raise NotImplementedError
+
 
 class TableReader(DataReader):
     """An implementation of data reader for databricks tables"""

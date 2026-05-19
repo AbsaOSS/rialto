@@ -29,7 +29,7 @@ class DateManager:
     def __init__(self, config: PipelinesConfig, run_date: date = None):
         self.config = config
         if run_date:
-            run_date = DateManager.str_to_date(run_date)
+            run_date = self.str_to_date(run_date)
         else:
             run_date = date.today()
 
