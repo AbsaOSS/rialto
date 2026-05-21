@@ -20,13 +20,13 @@ from typing import List
 from dateutil.relativedelta import relativedelta
 from loguru import logger
 
-from rialto.runner.config_loader import PipelinesConfig, ScheduleConfig
+from rialto.runner.config_loader import RunnerConfig, ScheduleConfig
 
 
 class DateManager:
     """Date generation and shifts based on configuration"""
 
-    def __init__(self, config: PipelinesConfig, run_date: date = None):
+    def __init__(self, config: RunnerConfig, run_date: str = None):
         if run_date:
             run_date = self.str_to_date(run_date)
         else:
@@ -34,8 +34,8 @@ class DateManager:
 
         self.date_from = self.date_subtract(
             input_date=run_date,
-            units=self.config.runner.watched_period_units,
-            value=self.config.runner.watched_period_value,
+            units=config.watched_period_units,
+            value=config.watched_period_value,
         )
 
         self.date_until = run_date
@@ -53,7 +53,7 @@ class DateManager:
         return self.date_until
 
     @staticmethod
-    def str_to_date(self, str_date: str) -> date:
+    def str_to_date(str_date: str) -> date:
         """
         Convert YYYY-MM-DD string to date
 
@@ -66,7 +66,7 @@ class DateManager:
             raise ValueError(f"Invalid date format: {str_date}. Expected YYYY-MM-DD.")
 
     @staticmethod
-    def date_subtract(self, input_date: date, units: str, value: int) -> date:
+    def date_subtract(input_date: date, units: str, value: int) -> date:
         """
         Subtract given number of units from input date
 
@@ -86,7 +86,7 @@ class DateManager:
         raise ValueError(f"Unknown time unit {units}")
 
     @staticmethod
-    def all_dates(self, date_from: date, date_to: date) -> List[date]:
+    def all_dates(date_from: date, date_to: date) -> List[date]:
         """
         Get list of all dates between, inclusive
 

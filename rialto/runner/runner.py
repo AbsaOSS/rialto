@@ -53,7 +53,7 @@ class Runner:
         self.tracker = Tracker(
             mail_cfg=self.config.runner.mail, bookkeeping=self.config.runner.bookkeeping, spark=spark
         )
-        self.date_manager = DateManager(self.config, run_date)
+        self.date_manager = DateManager(self.config.runner, run_date)
         self.planner = ExecutionPlanner(spark, date_manager=self.date_manager)
         self.executor = PipelineExecutor(
             spark=self.spark,

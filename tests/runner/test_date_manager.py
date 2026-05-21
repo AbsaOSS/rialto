@@ -11,11 +11,11 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-from datetime import datetime
+from datetime import date, datetime
 
 import pytest
 
-from rialto.runner.config_loader import IntervalConfig, ScheduleConfig
+from rialto.runner.config_loader import IntervalConfig, RunnerConfig, ScheduleConfig
 from rialto.runner.date_manager import DateManager
 
 
@@ -27,16 +27,16 @@ def test_str_to_date():
     "units , value, res",
     [("days", 7, "2023-02-26"), ("weeks", 3, "2023-02-12"), ("months", 5, "2022-10-05"), ("years", 2, "2021-03-5")],
 )
-def test_date_from(units, value, res):
+def test_date_subtract(units, value, res):
     rundate = DateManager.str_to_date("2023-03-05")
-    date_from = DateManager.date_subtract(run_date=rundate, units=units, value=value)
+    date_from = DateManager.date_subtract(input_date=rundate, units=units, value=value)
     assert date_from == DateManager.str_to_date(res)
 
 
-def test_date_from_bad():
+def test_date_subtract_bad():
     rundate = DateManager.str_to_date("2023-03-05")
     with pytest.raises(ValueError) as exception:
-        DateManager.date_subtract(run_date=rundate, units="random", value=1)
+        DateManager.date_subtract(input_date=rundate, units="random", value=1)
     assert str(exception.value) == "Unknown time unit random"
 
 
@@ -58,114 +58,126 @@ def test_all_dates_reversed():
     assert all_dates[1] == DateManager.str_to_date("2023-02-06")
 
 
-def test_run_dates_weekly():
-    cfg = ScheduleConfig(frequency="weekly", day=5)
-
-    run_dates = DateManager.execution_dates(
-        date_from=DateManager.str_to_date("2023-02-05"),
-        date_to=DateManager.str_to_date("2023-04-07"),
-        schedule=cfg,
-    )
-
-    expected = [
-        "2023-02-10",
-        "2023-02-17",
-        "2023-02-24",
-        "2023-03-03",
-        "2023-03-10",
-        "2023-03-17",
-        "2023-03-24",
-        "2023-03-31",
-        "2023-04-07",
-    ]
-    expected = [DateManager.str_to_date(d) for d in expected]
-    assert run_dates == expected
+def test_date_from():
+    runner_cfg = RunnerConfig(watched_period_units="months", watched_period_value=3)
+    date_manager = DateManager(config=runner_cfg, run_date="2023-03-05")
+    assert date_manager.get_date_from() == DateManager.str_to_date("2022-12-05")
 
 
-def test_run_dates_monthly():
-    cfg = ScheduleConfig(frequency="monthly", day=5)
-
-    run_dates = DateManager.execution_dates(
-        date_from=DateManager.str_to_date("2022-08-05"),
-        date_to=DateManager.str_to_date("2023-04-07"),
-        schedule=cfg,
-    )
-
-    expected = [
-        "2022-08-05",
-        "2022-09-05",
-        "2022-10-05",
-        "2022-11-05",
-        "2022-12-05",
-        "2023-01-05",
-        "2023-02-05",
-        "2023-03-05",
-        "2023-04-05",
-    ]
-    expected = [DateManager.str_to_date(d) for d in expected]
-    assert run_dates == expected
+def test_date_to():
+    runner_cfg = RunnerConfig(watched_period_units="months", watched_period_value=3)
+    date_manager = DateManager(config=runner_cfg, run_date="2023-03-05")
+    assert date_manager.get_date_until() == DateManager.str_to_date("2023-03-05")
 
 
-def test_run_dates_daily():
+def test_run_dates_daily_no_shift():
+    runner_cfg = RunnerConfig(watched_period_units="weeks", watched_period_value=1)
     cfg = ScheduleConfig(frequency="daily")
+    manager = DateManager(config=runner_cfg, run_date="2026-05-20")
 
-    run_dates = DateManager.execution_dates(
-        date_from=DateManager.str_to_date("2023-03-28"),
-        date_to=DateManager.str_to_date("2023-04-03"),
-        schedule=cfg,
-    )
+    exec, part = zip(*manager.get_execution_and_partition_dates(schedule=cfg))
 
-    expected = [
-        "2023-03-28",
-        "2023-03-29",
-        "2023-03-30",
-        "2023-03-31",
-        "2023-04-01",
-        "2023-04-02",
-        "2023-04-03",
+    expected_execution_dates = [
+        date(2026, 5, 13),
+        date(2026, 5, 14),
+        date(2026, 5, 15),
+        date(2026, 5, 16),
+        date(2026, 5, 17),
+        date(2026, 5, 18),
+        date(2026, 5, 19),
+        date(2026, 5, 20),
     ]
-    expected = [DateManager.str_to_date(d) for d in expected]
-    assert run_dates == expected
+
+    expected_partition_dates = [
+        date(2026, 5, 13),
+        date(2026, 5, 14),
+        date(2026, 5, 15),
+        date(2026, 5, 16),
+        date(2026, 5, 17),
+        date(2026, 5, 18),
+        date(2026, 5, 19),
+        date(2026, 5, 20),
+    ]
+    assert expected_execution_dates == list(exec)
+    assert expected_partition_dates == list(part)
 
 
-def test_run_dates_invalid():
-    cfg = ScheduleConfig(frequency="random")
-    with pytest.raises(ValueError) as exception:
-        DateManager.execution_dates(
-            date_from=DateManager.str_to_date("2023-03-28"),
-            date_to=DateManager.str_to_date("2023-04-03"),
-            schedule=cfg,
-        )
-    assert str(exception.value) == "Unknown frequency random"
+def test_run_dates_weekly_backwards_shift():
+    runner_cfg = RunnerConfig(watched_period_units="months", watched_period_value=1)
+    cfg = ScheduleConfig(frequency="weekly", day=5, info_date_shift=IntervalConfig(units="days", value=2))
+    manager = DateManager(config=runner_cfg, run_date="2026-05-20")
+
+    exec, part = zip(*manager.get_execution_and_partition_dates(schedule=cfg))
+
+    expected_execution_dates = [
+        date(2026, 4, 24),
+        date(2026, 5, 1),
+        date(2026, 5, 8),
+        date(2026, 5, 15),
+    ]
+
+    expected_partition_dates = [
+        date(2026, 4, 22),
+        date(2026, 4, 29),
+        date(2026, 5, 6),
+        date(2026, 5, 13),
+    ]
+    assert expected_execution_dates == list(exec)
+    assert expected_partition_dates == list(part)
 
 
-@pytest.mark.parametrize(
-    "shift, res",
-    [(7, "2023-02-26"), (3, "2023-03-02"), (-5, "2023-03-10"), (0, "2023-03-05")],
-)
-def test_to_info_date(shift, res):
-    cfg = ScheduleConfig(frequency="daily", info_date_shift=[IntervalConfig(units="days", value=shift)])
-    base = DateManager.str_to_date("2023-03-05")
-    info = DateManager.to_partition_date(base, cfg)
-    assert DateManager.str_to_date(res) == info
+def test_run_dates_monthly_with_forward_shift():
+    runner_cfg = RunnerConfig(watched_period_units="months", watched_period_value=3)
+    cfg = ScheduleConfig(frequency="monthly", day=5, info_date_shift=IntervalConfig(units="days", value=-2))
+    manager = DateManager(config=runner_cfg, run_date="2026-05-20")
+
+    exec, part = zip(*manager.get_execution_and_partition_dates(schedule=cfg))
+
+    expected_execution_dates = [
+        date(2026, 3, 5),
+        date(2026, 4, 5),
+        date(2026, 5, 5),
+    ]
+
+    expected_partition_dates = [
+        date(2026, 3, 7),
+        date(2026, 4, 7),
+        date(2026, 5, 7),
+    ]
+    assert expected_execution_dates == list(exec)
+    assert expected_partition_dates == list(part)
 
 
-@pytest.mark.parametrize(
-    "unit, result",
-    [("days", "2023-03-02"), ("weeks", "2023-02-12"), ("months", "2022-12-05"), ("years", "2020-03-05")],
-)
-def test_info_date_shift_units(unit, result):
-    cfg = ScheduleConfig(frequency="daily", info_date_shift=[IntervalConfig(units=unit, value=3)])
-    base = DateManager.str_to_date("2023-03-05")
-    info = DateManager.to_partition_date(base, cfg)
-    assert DateManager.str_to_date(result) == info
+def test_run_dates_monthly_last():
+    runner_cfg = RunnerConfig(watched_period_units="months", watched_period_value=3)
+    cfg = ScheduleConfig(frequency="monthly", day="last")
+    manager = DateManager(config=runner_cfg, run_date="2026-05-20")
+
+    exec, part = zip(*manager.get_execution_and_partition_dates(schedule=cfg))
+
+    expected_execution_dates = [
+        date(2026, 2, 28),
+        date(2026, 3, 31),
+        date(2026, 4, 30),
+    ]
+
+    expected_partition_dates = [
+        date(2026, 2, 28),
+        date(2026, 3, 31),
+        date(2026, 4, 30),
+    ]
+    assert expected_execution_dates == list(exec)
+    assert expected_partition_dates == list(part)
 
 
-def test_info_date_shift_combined():
-    cfg = ScheduleConfig(
-        frequency="daily",
-        info_date_shift=[IntervalConfig(units="months", value=3), IntervalConfig(units="days", value=4)],
-    )
-    base = DateManager.str_to_date("2023-03-05")
-    info = DateManager.to_partition_date(base, cfg)
-    assert DateManager.str_to_date("2022-12-01") == info
+def test_ivalid_days():
+    runner_cfg = RunnerConfig(watched_period_units="months", watched_period_value=3)
+    weekly_cfg = ScheduleConfig(frequency="weekly", day=12)
+    monthly_cfg = ScheduleConfig(frequency="monthly", day=42)
+    manager = DateManager(config=runner_cfg, run_date="2026-05-20")
+
+    with pytest.raises(ValueError):
+        manager.get_execution_and_partition_dates(schedule=weekly_cfg)
+
+    with pytest.raises(ValueError):
+        manager.get_execution_and_partition_dates(schedule=monthly_cfg)
