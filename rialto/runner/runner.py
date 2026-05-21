@@ -22,9 +22,10 @@ from rialto.common import TableReader
 from rialto.runner.config_loader import ConfigLoader, PipelineConfig
 from rialto.runner.data_checker import DataChecker
 from rialto.runner.date_manager import DateManager
-from rialto.runner.execution_planner import ExecutionPlanner
 from rialto.runner.executor import PipelineExecutor
 from rialto.runner.reporting.tracker import Tracker
+from rialto.runner.task_registry import TaskRegistry
+from rialto.runner.task_status_checker import TaskStatusChecker
 from rialto.runner.writer import DatabricksWriter
 
 
@@ -42,24 +43,24 @@ class Runner:
         overrides: Dict = None,
         merge_schema: bool = False,
     ):
-        self.spark = spark
         self.config = ConfigLoader().load_yaml(config_path, overrides)
-        self.reader = TableReader(spark)
+        self.date_manager = DateManager(self.config.runner, run_date)
         self.rerun = rerun
         self.op = op
         self.skip_dependencies = skip_dependencies
         self.writer = DatabricksWriter(spark, merge_schema=merge_schema)
-        self.checker = DataChecker(self.reader)
+
+        reader = TableReader(spark)
+        data_checker = DataChecker(reader)
+        self.task_checker = TaskStatusChecker(data_checker)
+        self.registry = TaskRegistry(spark, date_manager=self.date_manager)
+        self.executor = PipelineExecutor(
+            spark=spark,
+            reader=reader,
+            checker=data_checker,
+        )
         self.tracker = Tracker(
             mail_cfg=self.config.runner.mail, bookkeeping=self.config.runner.bookkeeping, spark=spark
-        )
-        self.date_manager = DateManager(self.config.runner, run_date)
-        self.planner = ExecutionPlanner(spark, date_manager=self.date_manager)
-        self.executor = PipelineExecutor(
-            spark=self.spark,
-            reader=self.reader,
-            checker=self.checker,
-            tracker=self.tracker,
         )
 
     def _select_pipelines(self) -> List[PipelineConfig]:
@@ -75,18 +76,20 @@ class Runner:
     def _register_tasks(self, pipelines: List[PipelineConfig]) -> None:
         for pipeline in pipelines:
             for exec_date, partition_date in self.date_manager.get_execution_and_partition_dates(pipeline.schedule):
-                self.planner.add_task(
+                self.registry.add_task(
                     name=pipeline.name, execution_date=exec_date, partition_date=partition_date, config=pipeline
                 )
 
     def _check_tasks(self) -> None:
-        for task in self.planner.tasks:
-            self.planner.check_completion(task, self.checker, self.rerun)
-            self.planner.check_pipeline_dependencies(task, self.checker, self.skip_dependencies)
+        for task in self.registry.tasks:
+            if not self.rerun:
+                self.task_checker.check_completion(task)
+            if not self.skip_dependencies:
+                self.task_checker.check_pipeline_dependencies(task)
 
     def _run_tasks(self) -> None:
-        for task in self.planner.tasks:
-            if not task.completion and task.dependencies_complete:
+        for task in self.registry.tasks:
+            if (not task.completion or self.rerun) and (task.dependencies_complete or self.skip_dependencies):
                 # run_start = datetime.now()
                 df = self.executor.execute(task)
                 self.writer.write(df, task.partition_date, task.target)
@@ -97,7 +100,7 @@ class Runner:
         pipelines = self._select_pipelines()
         self._register_tasks(pipelines)
         self._check_tasks()
-        self.planner.log_status()
+        self.registry.log_status()
         self._run_tasks()
 
     def dry_run(self):
@@ -105,10 +108,10 @@ class Runner:
         pipelines = self._select_pipelines()
         self._register_tasks(pipelines)
         self._check_tasks()
-        self.planner.log_status()
+        self.registry.log_status()
 
     def debug(self) -> DataFrame:
         """Debug mode - run only first op for one date and return the resulting dataframe"""
         pipelines = self._select_pipelines()
         self._register_tasks(pipelines)
-        return self.executor.execute(self.planner.tasks[0])
+        return self.executor.execute(self.registry.tasks[0])

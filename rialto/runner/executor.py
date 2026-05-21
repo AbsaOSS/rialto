@@ -20,21 +20,19 @@ from pyspark.sql import DataFrame, SparkSession
 import rialto.runner.utils as utils
 from rialto.common import DataReader
 from rialto.runner.data_checker import DataChecker
-from rialto.runner.execution_planner import Task
-from rialto.runner.reporting.tracker import Tracker
+from rialto.runner.task_registry import PipelineTask
 
 
 class PipelineExecutor:
     """Executes a single pipeline task."""
 
-    def __init__(self, spark: SparkSession, reader: DataReader, checker: DataChecker, tracker: Tracker):
+    def __init__(self, spark: SparkSession, reader: DataReader, checker: DataChecker):
         self.spark = spark
         self.reader = reader
         self.checker = checker
-        self.tracker = tracker
 
     @logger.catch
-    def execute(self, pipeline: Task) -> DataFrame:
+    def execute(self, pipeline: PipelineTask) -> DataFrame:
         """
         Execute the pipeline task.
 

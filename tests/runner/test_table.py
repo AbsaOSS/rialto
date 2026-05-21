@@ -1,3 +1,6 @@
+from unittest.mock import Mock
+
+from rialto.runner.config_loader import TargetConfig
 from rialto.runner.table import Table
 
 
@@ -48,3 +51,44 @@ def test_table_prioritize_table_name():
     assert t.catalog == "cat"
     assert t.schema == "sch"
     assert t.table == "custom"
+
+
+def test_from_target_config():
+    tconfig = TargetConfig(
+        target_schema="cat.sch",
+        target_partition_column="part",
+        secondary_partition_columns=["sec1", "sec2"],
+        custom_name=None,
+        rerun_filters={"col": "value"},
+    )
+
+    pipeline_cfg = Mock()
+    pipeline_cfg.module.python_class = "TestClass"
+    pipeline_cfg.target = tconfig
+
+    t = Table.from_target_config(pipeline_cfg)
+
+    assert t.get_table_path() == "cat.sch.test_class"
+    assert t.get_schema_path() == "cat.sch"
+    assert t.catalog == "cat"
+    assert t.schema == "sch"
+    assert t.table == "test_class"
+    assert t.get_all_partition_columns() == ["part", "sec1", "sec2"]
+    assert t.filters == {"col": "value"}
+
+
+def test_from_dependency_config():
+    dconfig = Mock()
+    dconfig.table = "cat.sch.tab"
+    dconfig.date_col = "date"
+    dconfig.filters = {"col": "value"}
+
+    t = Table.from_dependency_config(dconfig)
+
+    assert t.get_table_path() == "cat.sch.tab"
+    assert t.get_schema_path() == "cat.sch"
+    assert t.catalog == "cat"
+    assert t.schema == "sch"
+    assert t.table == "tab"
+    assert t.partition == "date"
+    assert t.filters == {"col": "value"}
