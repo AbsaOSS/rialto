@@ -1,6 +1,9 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## 2.2.1 - 2026-05-31
+ ### Runner
+ - added option to use day="last" for monthly scheduling
 
 ## 2.2.0 - 2026-03
  ### Runner

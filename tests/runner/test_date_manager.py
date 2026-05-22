@@ -170,7 +170,7 @@ def test_run_dates_monthly_last():
     assert expected_partition_dates == list(part)
 
 
-def test_ivalid_days():
+def test_invalid_days():
     runner_cfg = RunnerConfig(watched_period_units="months", watched_period_value=3)
     weekly_cfg = ScheduleConfig(frequency="weekly", day=12)
     monthly_cfg = ScheduleConfig(frequency="monthly", day=42)
