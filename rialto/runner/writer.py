@@ -16,7 +16,7 @@ __all__ = ["DatabricksWriter", "Writer"]
 
 from abc import ABC, abstractmethod
 from datetime import date
-from typing import List
+from typing import Any, List
 
 import pyspark.sql.functions as F
 from loguru import logger
@@ -78,50 +78,70 @@ class DatabricksWriter(Writer):
         :return: dataframe with aligned schema
         """
         if existing_columns is not None:
+            missing = [c for c in existing_columns if c not in df.columns]
+            if missing:
+                raise ValueError(f"DataFrame is missing columns present in existing table: {missing}")
             return df.select(
-                *[F.col(c) for c in existing_columns if c in df.columns],
+                *[F.col(c) for c in existing_columns],
                 *[F.col(c) for c in df.columns if c not in existing_columns],
             )
         return df
 
-    def _process(self, df: DataFrame, info_date: date, table: Table) -> DataFrame:
-        df = df.withColumn(table.partition, F.lit(info_date))
+    def _process(self, df: DataFrame, partition_date: date, table: Table) -> DataFrame:
+        df = df.withColumn(table.partition, F.lit(partition_date))
 
         df = self._align_schema(df, self._get_existing_columns(table))
 
         return df
 
-    def _get_replace_condition(self, df: DataFrame, partition_cols: List[str]) -> str:
-        row = df.select(*partition_cols).distinct().collect()
-        if len(row) > 1:
-            raise ValueError(f"Some of the partitions to write have more than 1 distinct value \n {row}")
+    def _get_replace_expression(self, key: str, value: Any) -> str:
+        if value is None:
+            return f"{key} IS NULL"
+        elif isinstance(value, (int, float)):
+            return f"{key} = {value}"
+        else:
+            return f"{key} = '{value}'"
 
-        parts = []
-        for c in partition_cols:
-            val = row[0][c]
-            if val is None:
-                parts.append(f"{c} IS NULL")
-            elif isinstance(val, (int, float)):
-                parts.append(f"{c} = {val}")
-            else:
-                parts.append(f"{c} = '{val}'")
-        condition = " AND ".join(parts)
-        return condition
+    def _get_replace_condition(self, df: DataFrame, target: Table, partition_date: date) -> str:
+        partition_cols = target.get_all_partition_columns()
 
-    def write(self, df: DataFrame, info_date: date, table: Table) -> None:
+        # only date column
+        if len(partition_cols) == 1:
+            return f"{partition_cols[0]} = '{partition_date.strftime('%Y-%m-%d')}'"
+
+        # if target filters present for all partitions
+        elif target.filters and len(partition_cols) == len(target.filters):
+            parts = []
+            for c in partition_cols:
+                parts.append(self._get_replace_expression(c, target.filters[c]))
+            condition = " AND ".join(parts)
+            return condition
+        # grab from dataframe
+        else:
+            row = df.select(*partition_cols).distinct().collect()
+            if len(row) > 1:
+                raise ValueError(f"Some of the partitions to write have more than 1 distinct value \n {row}")
+
+            parts = []
+            for c in partition_cols:
+                parts.append(self._get_replace_expression(c, row[0][c]))
+            condition = " AND ".join(parts)
+            return condition
+
+    def write(self, df: DataFrame, partition_date: date, table: Table) -> None:
         """
         Write dataframe to storage
 
         :param df: dataframe to write
-        :param info_date: date to partition
+        :param partition_date: date to partition
         :param table: path to write to
         :return: None
         """
         self._create_schema(table)
 
-        df = self._process(df, info_date, table)
+        df = self._process(df, partition_date, table)
 
-        replace_where = self._get_replace_condition(df, table.get_all_partition_columns())
+        replace_where = self._get_replace_condition(df, table, partition_date)
 
         df.write.format("delta").partitionBy(table.partition).mode("overwrite").option(
             "mergeSchema", "true" if self.merge_schema else "false"
