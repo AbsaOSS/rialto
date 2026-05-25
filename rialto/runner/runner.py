@@ -14,23 +14,16 @@
 
 __all__ = ["Runner"]
 
-from typing import Dict, List
+from typing import Dict
 
 from pyspark.sql import DataFrame, SparkSession
 
-from rialto.common import TableReader
-from rialto.runner.config_loader import ConfigLoader, PipelineConfig
-from rialto.runner.data_checker import DataChecker
-from rialto.runner.date_manager import DateManager
-from rialto.runner.executor import PipelineExecutor
-from rialto.runner.reporting.tracker import Tracker
-from rialto.runner.task_registry import TaskRegistry
-from rialto.runner.task_status_checker import TaskStatusChecker
-from rialto.runner.writer import DatabricksWriter
+from rialto.runner.engine import RunnerEngine
+from rialto.runner.services import DefaultRunnerServices, RunnerServices
 
 
 class Runner:
-    """A scheduler and dependency checker for feature runs"""
+    """Entry point for pipeline execution orchestration (beginner-friendly API)"""
 
     def __init__(
         self,
@@ -42,76 +35,43 @@ class Runner:
         skip_dependencies: bool = False,
         overrides: Dict = None,
         merge_schema: bool = False,
+        services: RunnerServices = None,
     ):
-        self.config = ConfigLoader().load_yaml(config_path, overrides)
-        self.date_manager = DateManager(self.config.runner, run_date)
-        self.rerun = rerun
-        self.op = op
-        self.skip_dependencies = skip_dependencies
-        self.writer = DatabricksWriter(spark, merge_schema=merge_schema)
+        """
+        Initialize Runner for pipeline orchestration.
 
-        reader = TableReader(spark)
-        data_checker = DataChecker(reader)
-        self.task_checker = TaskStatusChecker(data_checker)
-        self.registry = TaskRegistry(spark, date_manager=self.date_manager)
-        self.executor = PipelineExecutor(
+        :param spark: SparkSession instance
+        :param config_path: Path to pipeline configuration YAML
+        :param run_date: Override run date (optional)
+        :param rerun: Force re-execution of completed tasks
+        :param op: Target specific pipeline by name (optional)
+        :param skip_dependencies: Skip dependency validation
+        :param overrides: Configuration overrides
+        :param merge_schema: Enable schema merging in writer
+        :param services: Custom RunnerServices bundle (optional, for advanced users)
+        """
+        self._services = services or DefaultRunnerServices.build(
             spark=spark,
-            reader=reader,
-            checker=data_checker,
+            config_path=config_path,
+            run_date=run_date,
+            merge_schema=merge_schema,
+            overrides=overrides,
         )
-        self.tracker = Tracker(
-            mail_cfg=self.config.runner.mail, bookkeeping=self.config.runner.bookkeeping, spark=spark
+        self._engine = RunnerEngine(
+            services=self._services,
+            rerun=rerun,
+            skip_dependencies=skip_dependencies,
         )
-
-    def _select_pipelines(self) -> List[PipelineConfig]:
-        """Select pipelines to run based on config and input parameters"""
-        if self.op:
-            selected = [p for p in self.config.pipelines if p.name == self.op]
-            if len(selected) < 1:
-                raise ValueError(f"Unknown operation selected: {self.op}")
-            return selected
-        else:
-            return self.config.pipelines
-
-    def _register_tasks(self, pipelines: List[PipelineConfig]) -> None:
-        for pipeline in pipelines:
-            for exec_date, partition_date in self.date_manager.get_execution_and_partition_dates(pipeline.schedule):
-                self.registry.add_task(
-                    name=pipeline.name, execution_date=exec_date, partition_date=partition_date, config=pipeline
-                )
-
-    def _check_tasks(self) -> None:
-        for task in self.registry.tasks:
-            if not self.rerun:
-                self.task_checker.check_completion(task)
-            if not self.skip_dependencies:
-                self.task_checker.check_pipeline_dependencies(task)
-
-    def _run_tasks(self) -> None:
-        for task in self.registry.tasks:
-            if (not task.completion or self.rerun) and (task.dependencies_complete or self.skip_dependencies):
-                # run_start = datetime.now()
-                df = self.executor.execute(task)
-                self.writer.write(df, task.partition_date, task.target)
-                # records = self.checker.check_written(task.target, task.partition_date, df)
+        self.op = op
 
     def __call__(self):
         """Execute pipelines"""
-        pipelines = self._select_pipelines()
-        self._register_tasks(pipelines)
-        self._check_tasks()
-        self.registry.log_status()
-        self._run_tasks()
+        self._engine.run(self.op)
 
     def dry_run(self):
         """Dry run - log status of pipelines without executing"""
-        pipelines = self._select_pipelines()
-        self._register_tasks(pipelines)
-        self._check_tasks()
-        self.registry.log_status()
+        self._engine.dry_run_execution(self.op)
 
-    def debug(self) -> DataFrame:
+    def _debug(self) -> DataFrame:
         """Debug mode - run only first op for one date and return the resulting dataframe"""
-        pipelines = self._select_pipelines()
-        self._register_tasks(pipelines)
-        return self.executor.execute(self.registry.tasks[0])
+        return self._engine.debug_first_task(self.op)

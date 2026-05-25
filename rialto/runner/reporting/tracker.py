@@ -29,9 +29,7 @@ class Tracker:
 
     def __init__(self, mail_cfg: MailConfig, bookkeeping: str = None, spark: SparkSession = None):
         self.records = []
-        self.last_error = None
         self.pipeline_start = datetime.now()
-        self.exceptions = []
         self.mail_cfg = mail_cfg
         self.bookkeeper = None
 

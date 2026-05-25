@@ -31,7 +31,6 @@ class PipelineExecutor:
         self.reader = reader
         self.checker = checker
 
-    @logger.catch
     def execute(self, pipeline: PipelineTask) -> DataFrame:
         """
         Execute the pipeline task.
