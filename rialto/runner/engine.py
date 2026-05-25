@@ -21,10 +21,10 @@ from typing import List
 from loguru import logger
 from pyspark.sql import DataFrame
 
-from rialto.runner.config_loader import PipelineConfig
-from rialto.runner.result_mapper import TaskResultMapper
-from rialto.runner.services import RunnerServices
-from rialto.runner.task_registry import PipelineTask
+from rialto.runner.runner_services import RunnerServices
+from rialto.runner.services.config_loader import PipelineConfig
+from rialto.runner.services.result_mapper import TaskResultMapper
+from rialto.runner.services.task_registry import PipelineTask
 
 
 class RunnerEngine:

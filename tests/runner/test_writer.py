@@ -19,8 +19,8 @@ import pytest
 from pyspark.sql import Row
 from pyspark.sql.types import StringType, StructField, StructType
 
-from rialto.runner.table import Table
-from rialto.runner.writer import DatabricksWriter
+from rialto.runner.services.table import Table
+from rialto.runner.services.writer import DatabricksWriter
 
 
 @pytest.fixture
@@ -180,7 +180,7 @@ def test_get_existing_columns_returns_none_on_exception():
     writer = DatabricksWriter(spark=spark)
 
     # Patch the module-level logger used in writer.py
-    with patch("rialto.runner.writer.logger.warning") as warning_mock:
+    with patch("rialto.runner.services.writer.logger.warning") as warning_mock:
         # Act
         result = writer._get_existing_columns(table)
 

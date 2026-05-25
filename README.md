@@ -434,7 +434,7 @@ With that sorted out, we can now provide a quick example of the *rialto.jobs* mo
 from pyspark.sql import DataFrame
 from rialto.common import TableReader
 from rialto.jobs import config_parser, job, datasource
-from rialto.runner.config_loader import PipelineConfig
+from rialto.runner.services.config_loader import PipelineConfig
 from pydantic import BaseModel
 
 

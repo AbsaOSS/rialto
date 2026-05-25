@@ -14,8 +14,8 @@
 from datetime import date
 from unittest.mock import MagicMock, patch
 
-from rialto.runner.executor import PipelineExecutor
-from rialto.runner.task_registry import PipelineTask
+from rialto.runner.services.executor import PipelineExecutor
+from rialto.runner.services.task_registry import PipelineTask
 
 
 def test_execute_calls_job_run_and_returns_df():

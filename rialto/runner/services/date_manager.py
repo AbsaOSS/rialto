@@ -20,7 +20,7 @@ from typing import List
 from dateutil.relativedelta import relativedelta
 from loguru import logger
 
-from rialto.runner.config_loader import RunnerConfig, ScheduleConfig
+from rialto.runner.services.config_loader import RunnerConfig, ScheduleConfig
 
 
 class DateManager:

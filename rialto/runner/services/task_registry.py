@@ -20,9 +20,9 @@ from typing import Iterator, List
 from loguru import logger
 from pyspark.sql import SparkSession
 
-from rialto.runner.config_loader import PipelineConfig
-from rialto.runner.date_manager import DateManager
-from rialto.runner.table import Table
+from rialto.runner.services.config_loader import PipelineConfig
+from rialto.runner.services.date_manager import DateManager
+from rialto.runner.services.table import Table
 
 
 @dataclass

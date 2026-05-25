@@ -18,8 +18,8 @@ import pytest
 from pyspark.sql.types import DateType, IntegerType, StringType, StructField, StructType
 
 from rialto.common import TableReader
-from rialto.runner.data_checker import DataChecker
-from rialto.runner.table import Table
+from rialto.runner.services.data_checker import DataChecker
+from rialto.runner.services.table import Table
 
 
 @pytest.fixture(scope="module")

@@ -17,7 +17,7 @@ __all__ = ["TaskResultMapper"]
 from datetime import datetime
 
 from rialto.runner.reporting.record import Record
-from rialto.runner.task_registry import PipelineTask
+from rialto.runner.services.task_registry import PipelineTask
 
 
 class TaskResultMapper:

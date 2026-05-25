@@ -19,7 +19,7 @@ from typing import Dict
 from pyspark.sql import DataFrame, SparkSession
 
 from rialto.runner.engine import RunnerEngine
-from rialto.runner.services import DefaultRunnerServices, RunnerServices
+from rialto.runner.runner_services import DefaultRunnerServices, RunnerServices
 
 
 class Runner:

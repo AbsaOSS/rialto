@@ -19,14 +19,14 @@ from dataclasses import dataclass
 from pyspark.sql import SparkSession
 
 from rialto.common import TableReader
-from rialto.runner.config_loader import ConfigLoader, PipelinesConfig
-from rialto.runner.data_checker import DataChecker
-from rialto.runner.date_manager import DateManager
-from rialto.runner.executor import PipelineExecutor
 from rialto.runner.reporting.tracker import Tracker
-from rialto.runner.task_registry import TaskRegistry
-from rialto.runner.task_status_checker import TaskStatusChecker
-from rialto.runner.writer import DatabricksWriter
+from rialto.runner.services.config_loader import ConfigLoader, PipelinesConfig
+from rialto.runner.services.data_checker import DataChecker
+from rialto.runner.services.date_manager import DateManager
+from rialto.runner.services.executor import PipelineExecutor
+from rialto.runner.services.task_registry import TaskRegistry
+from rialto.runner.services.task_status_checker import TaskStatusChecker
+from rialto.runner.services.writer import DatabricksWriter
 
 
 @dataclass
@@ -64,7 +64,7 @@ class DefaultRunnerServices:
         :param overrides: Configuration overrides
         :return: RunnerServices bundle
         """
-        config = ConfigLoader().load_yaml(config_path, overrides)
+        config = ConfigLoader.load_yaml(config_path, overrides)
         date_manager = DateManager(config.runner, run_date)
         writer = DatabricksWriter(spark, merge_schema=merge_schema)
 

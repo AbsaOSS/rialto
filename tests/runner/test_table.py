@@ -13,8 +13,8 @@
 #  limitations under the License.
 from unittest.mock import Mock
 
-from rialto.runner.config_loader import TargetConfig
-from rialto.runner.table import Table
+from rialto.runner.services.config_loader import TargetConfig
+from rialto.runner.services.table import Table
 
 
 def test_table_basic_init():

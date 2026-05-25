@@ -21,7 +21,7 @@ from typing import Dict, List, Optional, Union
 from pydantic import BaseModel, ConfigDict, Field
 
 from rialto.common.utils import load_yaml
-from rialto.runner.config_overrides import override_config
+from rialto.runner.services.config_overrides import override_config
 
 
 class BaseConfig(BaseModel):

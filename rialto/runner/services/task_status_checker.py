@@ -15,8 +15,8 @@ __all__ = ["TaskStatusChecker"]
 
 from loguru import logger
 
-from rialto.runner.data_checker import DataChecker
-from rialto.runner.task_registry import PipelineTask
+from rialto.runner.services.data_checker import DataChecker
+from rialto.runner.services.task_registry import PipelineTask
 
 
 class TaskStatusChecker:

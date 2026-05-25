@@ -13,7 +13,7 @@
 #  limitations under the License.
 from pyspark.sql.types import DateType, IntegerType, StringType, StructField, StructType
 
-from rialto.runner.date_manager import DateManager
+from rialto.runner.services.date_manager import DateManager
 
 simple_group_data = [
     ("A", DateManager.str_to_date("2023-03-05")),

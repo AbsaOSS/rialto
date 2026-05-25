@@ -22,13 +22,13 @@ import pyspark.sql.functions as F
 from loguru import logger
 from pydantic import BaseModel
 from pyspark.sql import DataFrame, SparkSession
+from services.config_loader import PipelineConfig
 
 from rialto.common import TableReader
 from rialto.jobs.resolver import Resolver
 from rialto.loader import PysparkFeatureLoader
 from rialto.metadata import MetadataManager
 from rialto.runner import Transformation
-from rialto.runner.config_loader import PipelineConfig
 
 
 class JobMetadata(BaseModel):

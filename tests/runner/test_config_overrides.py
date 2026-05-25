@@ -24,7 +24,7 @@ def test_overrides_simple(spark):
         run_date="2023-03-31",
         overrides={"runner.mail.to": ["x@b.c", "y@b.c", "z@b.c"]},
     )
-    assert runner.config.runner.mail.to == ["x@b.c", "y@b.c", "z@b.c"]
+    assert runner._services.config.runner.mail.to == ["x@b.c", "y@b.c", "z@b.c"]
 
 
 def test_overrides_array_index(spark):
@@ -34,7 +34,7 @@ def test_overrides_array_index(spark):
         run_date="2023-03-31",
         overrides={"runner.mail.to[1]": "a@b.c"},
     )
-    assert runner.config.runner.mail.to == ["developer@testing.org", "a@b.c"]
+    assert runner._services.config.runner.mail.to == ["developer@testing.org", "a@b.c"]
 
 
 def test_overrides_array_append(spark):
@@ -44,7 +44,7 @@ def test_overrides_array_append(spark):
         run_date="2023-03-31",
         overrides={"runner.mail.to[-1]": "test"},
     )
-    assert runner.config.runner.mail.to == ["developer@testing.org", "developer2@testing.org", "test"]
+    assert runner._services.config.runner.mail.to == ["developer@testing.org", "developer2@testing.org", "test"]
 
 
 def test_overrides_array_lookup(spark):
@@ -54,7 +54,7 @@ def test_overrides_array_lookup(spark):
         run_date="2023-03-31",
         overrides={"pipelines[name=SimpleGroup].target.target_schema": "new_schema"},
     )
-    assert runner.config.pipelines[0].target.target_schema == "new_schema"
+    assert runner._services.config.pipelines[0].target.target_schema == "new_schema"
 
 
 def test_overrides_combined(spark):
@@ -68,9 +68,9 @@ def test_overrides_combined(spark):
             "pipelines[name=SimpleGroup].schedule.info_date_shift[0].value": 1,
         },
     )
-    assert runner.config.runner.mail.to == ["x@b.c", "y@b.c", "z@b.c"]
-    assert runner.config.pipelines[0].target.target_schema == "new_schema"
-    assert runner.config.pipelines[0].schedule.info_date_shift[0].value == 1
+    assert runner._services.config.runner.mail.to == ["x@b.c", "y@b.c", "z@b.c"]
+    assert runner._services.config.pipelines[0].target.target_schema == "new_schema"
+    assert runner._services.config.pipelines[0].schedule.info_date_shift[0].value == 1
 
 
 def test_index_out_of_range(spark):
@@ -128,7 +128,7 @@ def test_replace_section(spark):
             }
         },
     )
-    assert runner.config.pipelines[0].feature_loader.feature_schema == "catalog.features"
+    assert runner._services.config.pipelines[0].feature_loader.feature_schema == "catalog.features"
 
 
 def test_add_section(spark):
@@ -143,7 +143,7 @@ def test_add_section(spark):
             }
         },
     )
-    assert runner.config.pipelines[1].feature_loader.feature_schema == "catalog.features"
+    assert runner._services.config.pipelines[1].feature_loader.feature_schema == "catalog.features"
 
 
 def test_invalid_append_index_for_nested_path(spark):

@@ -21,7 +21,7 @@ from pyspark.sql import SparkSession
 
 from rialto.loader import PysparkFeatureLoader
 from rialto.metadata import MetadataManager
-from rialto.runner.config_loader import ModuleConfig, PipelineConfig
+from rialto.runner.services.config_loader import ModuleConfig, PipelineConfig
 from rialto.runner.transformation import Transformation
 
 

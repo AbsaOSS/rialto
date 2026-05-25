@@ -16,7 +16,7 @@ from unittest.mock import patch
 
 import pytest
 
-from rialto.runner.config_loader import (
+from rialto.runner.services.config_loader import (
     DependencyConfig,
     IntervalConfig,
     ModuleConfig,
@@ -25,8 +25,12 @@ from rialto.runner.config_loader import (
     ScheduleConfig,
     TargetConfig,
 )
-from rialto.runner.date_manager import DateManager
-from rialto.runner.task_registry import PipelineDependency, PipelineTask, TaskRegistry
+from rialto.runner.services.date_manager import DateManager
+from rialto.runner.services.task_registry import (
+    PipelineDependency,
+    PipelineTask,
+    TaskRegistry,
+)
 
 
 @pytest.fixture(scope="module")
@@ -161,7 +165,7 @@ def test_log_status_contains_task_info(spark, date_manager, pipeline_config_no_d
     registry.add_task("test_pipeline", date(2020, 1, 1), date(2019, 12, 31), pipeline_config_no_deps)
     registry.tasks[0].completion = True
 
-    with patch("rialto.runner.task_registry.logger") as mock_logger:
+    with patch("rialto.runner.services.task_registry.logger") as mock_logger:
         registry.log_status()
 
     mock_logger.info.assert_called_once()

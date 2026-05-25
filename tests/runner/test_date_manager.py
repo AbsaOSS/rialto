@@ -15,8 +15,12 @@ from datetime import date, datetime
 
 import pytest
 
-from rialto.runner.config_loader import IntervalConfig, RunnerConfig, ScheduleConfig
-from rialto.runner.date_manager import DateManager
+from rialto.runner.services.config_loader import (
+    IntervalConfig,
+    RunnerConfig,
+    ScheduleConfig,
+)
+from rialto.runner.services.date_manager import DateManager
 
 
 def test_str_to_date():

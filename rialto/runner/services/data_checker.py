@@ -20,7 +20,7 @@ from loguru import logger
 from pyspark.sql import DataFrame
 
 from rialto.common import DataReader
-from rialto.runner.table import Table
+from rialto.runner.services.table import Table
 
 
 class DataChecker:

@@ -17,7 +17,7 @@ __all__ = ["Table"]
 from typing import Dict, List
 
 from rialto.metadata import class_to_catalog_name
-from rialto.runner.config_loader import DependencyConfig, PipelineConfig
+from rialto.runner.services.config_loader import DependencyConfig, PipelineConfig
 
 
 class Table:

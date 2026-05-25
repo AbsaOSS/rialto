@@ -17,9 +17,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from rialto.runner.table import Table
-from rialto.runner.task_registry import PipelineDependency
-from rialto.runner.task_status_checker import TaskStatusChecker
+from rialto.runner.services.table import Table
+from rialto.runner.services.task_registry import PipelineDependency
+from rialto.runner.services.task_status_checker import TaskStatusChecker
 
 
 def make_task(op="my_pipeline", partition_date=date(2020, 1, 1), dependencies=None):
@@ -122,7 +122,7 @@ def test_check_completion_logs_status():
     task = make_task(op="logged_pipeline", partition_date=date(2020, 3, 1))
     status_checker = TaskStatusChecker(checker=checker)
 
-    with patch("rialto.runner.task_status_checker.logger") as mock_logger:
+    with patch("rialto.runner.services.task_status_checker.logger") as mock_logger:
         status_checker.check_completion(task)
 
     mock_logger.info.assert_called_once()

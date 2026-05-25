@@ -22,7 +22,7 @@ import pyspark.sql.functions as F
 from loguru import logger
 from pyspark.sql import DataFrame, SparkSession
 
-from rialto.runner.table import Table
+from rialto.runner.services.table import Table
 
 
 class Writer(ABC):
