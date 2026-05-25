@@ -17,6 +17,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from pyspark.sql import Row
+from pyspark.sql.types import StringType, StructField, StructType
 
 from rialto.runner.table import Table
 from rialto.runner.writer import DatabricksWriter
@@ -81,6 +82,26 @@ def test_get_replace_condition_string_value(spark, writer):
     assert condition == "info_date = '2020-01-01'"
 
 
+def test_get_replace_condition_second_value_null(spark, writer):
+    df = spark.createDataFrame(
+        [Row(information_date="2020-01-01", region=None)],
+        schema=StructType(
+            [
+                StructField("information_date", StringType(), nullable=False),
+                StructField("region", StringType(), nullable=True),
+            ]
+        ),
+    )
+    target = Table(
+        schema_path="default.test_schema",
+        class_name="MyTable",
+        partition="information_date",
+        secondary_partitions=["region"],
+    )
+    condition = writer._get_replace_condition(df, target, datetime(2020, 1, 1))
+    assert condition == "information_date = '2020-01-01' AND region IS NULL"
+
+
 def test_get_replace_condition_second_value_no_filters(spark, writer):
     df = spark.createDataFrame([Row(information_date="2020-01-01", region=1)])
     target = Table(
@@ -131,6 +152,45 @@ def test_process_adds_partition_column(spark, writer, simple_table):
     assert result.collect()[0]["info_date"] == date(2020, 1, 1)
 
 
+def test_get_existing_columns_returns_columns():
+    # Arrange
+    spark = Mock()
+    table = Mock()
+    table.get_table_path.return_value = "catalog.schema.tbl"
+
+    spark_df = Mock()
+    spark_df.columns = ["id", "name"]
+    spark.table.return_value = spark_df
+
+    writer = DatabricksWriter(spark=spark)
+    result = writer._get_existing_columns(table)
+
+    assert result == ["id", "name"]
+    table.get_table_path.assert_called_once_with()
+    spark.table.assert_called_once_with("catalog.schema.tbl")
+
+
+def test_get_existing_columns_returns_none_on_exception():
+    # Arrange
+    spark = Mock()
+    table = Mock()
+    table.get_table_path.return_value = "catalog.schema.tbl"
+    spark.table.side_effect = Exception("table not found")
+
+    writer = DatabricksWriter(spark=spark)
+
+    # Patch the module-level logger used in writer.py
+    with patch("rialto.runner.writer.logger.warning") as warning_mock:
+        # Act
+        result = writer._get_existing_columns(table)
+
+    # Assert
+    assert result is None
+    table.get_table_path.assert_called()  # called at least once (try + except log message)
+    spark.table.assert_called_once_with("catalog.schema.tbl")
+    warning_mock.assert_called_once()
+
+
 # --- write (integration of internal steps) ---
 
 
@@ -143,6 +203,19 @@ def test_write_calls_create_schema(spark, writer, simple_table):
         writer.write(df, Mock(), simple_table)
 
     mock_create.assert_called_once_with(simple_table)
+
+
+def test_create_schema_uses_table_schema_path():
+    # Arrange
+    spark = Mock()
+    table = Mock()
+    table.get_schema_path.return_value = "my_catalog.my_schema"
+
+    writer = DatabricksWriter(spark=spark)
+    writer._create_schema(table)
+
+    spark.sql.assert_called_once_with("CREATE SCHEMA IF NOT EXISTS my_catalog.my_schema")
+    table.get_schema_path.assert_called_once_with()
 
 
 def test_write_merge_schema_option(spark, writer_merge, simple_table):

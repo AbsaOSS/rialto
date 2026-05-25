@@ -110,7 +110,8 @@ class DatabricksWriter(Writer):
             return f"{partition_cols[0]} = '{partition_date.strftime('%Y-%m-%d')}'"
 
         # if target filters present for all partitions
-        elif target.filters and len(partition_cols) == len(target.filters):
+        elif target.filters and len(partition_cols) - 1 == len(target.filters):
+            target.filters[target.partition] = partition_date.strftime("%Y-%m-%d")
             parts = []
             for c in partition_cols:
                 parts.append(self._get_replace_expression(c, target.filters[c]))

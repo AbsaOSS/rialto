@@ -86,18 +86,15 @@ class DateManager:
         raise ValueError(f"Unknown time unit {units}")
 
     @staticmethod
-    def all_dates(date_from: date, date_to: date) -> List[date]:
+    def all_dates(date_from: date, date_until: date) -> List[date]:
         """
         Get list of all dates between, inclusive
 
         :param date_from: starting date
-        :param date_to: ending date
+        :param date_until: ending date
         :return: List[date]
         """
-        if date_to < date_from:
-            date_to, date_from = date_from, date_to
-
-        return [date_from + relativedelta(days=n) for n in range((date_to - date_from).days + 1)]
+        return [date_from + relativedelta(days=n) for n in range((date_until - date_from).days + 1)]
 
     def get_execution_and_partition_dates(self, schedule: ScheduleConfig) -> List[tuple[date, date]]:
         """

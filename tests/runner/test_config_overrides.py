@@ -144,3 +144,14 @@ def test_add_section(spark):
         },
     )
     assert runner.config.pipelines[1].feature_loader.feature_schema == "catalog.features"
+
+
+def test_invalid_append_index_for_nested_path(spark):
+    with pytest.raises(ValueError) as error:
+        Runner(
+            spark,
+            config_path="tests/runner/overrider.yaml",
+            run_date="2023-03-31",
+            overrides={"runner.mail.to[-1].domain": "example.com"},
+        )
+    assert error.value.args[0] == "Invalid index -1 for key to in path ['to[-1]', 'domain']"

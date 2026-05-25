@@ -23,6 +23,17 @@ def test_str_to_date():
     assert DateManager.str_to_date("2023-03-05") == datetime.strptime("2023-03-05", "%Y-%m-%d").date()
 
 
+def test_str_to_date_bad():
+    with pytest.raises(ValueError):
+        DateManager.str_to_date("2023/03/05")
+
+
+def test_invalid_range():
+    runner_cfg = RunnerConfig(watched_period_units="months", watched_period_value=-3)
+    with pytest.raises(ValueError):
+        DateManager(config=runner_cfg, run_date="2023-03-05")
+
+
 @pytest.mark.parametrize(
     "units , value, res",
     [("days", 7, "2023-02-26"), ("weeks", 3, "2023-02-12"), ("months", 5, "2022-10-05"), ("years", 2, "2021-03-5")],
@@ -43,16 +54,7 @@ def test_date_subtract_bad():
 def test_all_dates():
     all_dates = DateManager.all_dates(
         date_from=DateManager.str_to_date("2023-02-05"),
-        date_to=DateManager.str_to_date("2023-04-12"),
-    )
-    assert len(all_dates) == 67
-    assert all_dates[1] == DateManager.str_to_date("2023-02-06")
-
-
-def test_all_dates_reversed():
-    all_dates = DateManager.all_dates(
-        date_from=DateManager.str_to_date("2023-04-12"),
-        date_to=DateManager.str_to_date("2023-02-05"),
+        date_until=DateManager.str_to_date("2023-04-12"),
     )
     assert len(all_dates) == 67
     assert all_dates[1] == DateManager.str_to_date("2023-02-06")
@@ -64,7 +66,7 @@ def test_date_from():
     assert date_manager.get_date_from() == DateManager.str_to_date("2022-12-05")
 
 
-def test_date_to():
+def test_date_until():
     runner_cfg = RunnerConfig(watched_period_units="months", watched_period_value=3)
     date_manager = DateManager(config=runner_cfg, run_date="2023-03-05")
     assert date_manager.get_date_until() == DateManager.str_to_date("2023-03-05")
@@ -148,6 +150,32 @@ def test_run_dates_monthly_with_forward_shift():
     assert expected_partition_dates == list(part)
 
 
+def test_run_dates_monthly_with_double_shift():
+    runner_cfg = RunnerConfig(watched_period_units="months", watched_period_value=3)
+    cfg = ScheduleConfig(
+        frequency="monthly",
+        day=5,
+        info_date_shift=[IntervalConfig(units="days", value=-2), IntervalConfig(units="months", value=2)],
+    )
+    manager = DateManager(config=runner_cfg, run_date="2026-05-20")
+
+    exec, part = zip(*manager.get_execution_and_partition_dates(schedule=cfg))
+
+    expected_execution_dates = [
+        date(2026, 3, 5),
+        date(2026, 4, 5),
+        date(2026, 5, 5),
+    ]
+
+    expected_partition_dates = [
+        date(2026, 1, 7),
+        date(2026, 2, 7),
+        date(2026, 3, 7),
+    ]
+    assert expected_execution_dates == list(exec)
+    assert expected_partition_dates == list(part)
+
+
 def test_run_dates_monthly_last():
     runner_cfg = RunnerConfig(watched_period_units="months", watched_period_value=3)
     cfg = ScheduleConfig(frequency="monthly", day="last")
@@ -181,3 +209,15 @@ def test_invalid_days():
 
     with pytest.raises(ValueError):
         manager.get_execution_and_partition_dates(schedule=monthly_cfg)
+
+
+def test_invalid_frequency():
+    runner_cfg = RunnerConfig(watched_period_units="months", watched_period_value=3)
+    bad_cfg = ScheduleConfig(frequency="abc", day=42)
+    manager = DateManager(config=runner_cfg, run_date="2026-05-20")
+
+    with pytest.raises(ValueError):
+        manager.get_execution_and_partition_dates(schedule=bad_cfg)
+
+    with pytest.raises(ValueError):
+        manager.get_execution_and_partition_dates(schedule=bad_cfg)
