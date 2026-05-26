@@ -39,8 +39,8 @@ def test_execute_calls_job_run_and_returns_df():
     mock_df = MagicMock()
     mock_job.run.return_value = mock_df
 
-    with patch("rialto.runner.utils.load_module", return_value=mock_job) as load_module, patch(
-        "rialto.runner.utils.init_tools", return_value=(None, None)
+    with patch.object(executor, "_load_module", return_value=mock_job) as load_module, patch.object(
+        executor, "_init_tools", return_value=(None, None)
     ):
         result = executor.execute(task)
 

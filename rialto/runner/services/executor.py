@@ -23,10 +23,10 @@ from pyspark.sql import DataFrame, SparkSession
 from rialto.common import DataReader
 from rialto.loader import PysparkFeatureLoader
 from rialto.metadata import MetadataManager
-from rialto.runner import Transformation
 from rialto.runner.services.config_loader import ModuleConfig, PipelineConfig
 from rialto.runner.services.data_checker import DataChecker
 from rialto.runner.services.task_registry import PipelineTask
+from rialto.runner.transformation import Transformation
 
 
 class PipelineExecutor:
