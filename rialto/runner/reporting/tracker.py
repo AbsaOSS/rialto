@@ -17,11 +17,11 @@ __all__ = ["Tracker"]
 from datetime import datetime
 
 from pyspark.sql import SparkSession
-from services.config_loader import MailConfig
 
 from rialto.runner.reporting.bookkeeper import BookKeeper
 from rialto.runner.reporting.mailer import HTMLMessage, Mailer
 from rialto.runner.reporting.record import Record
+from rialto.runner.services.config_loader import MailConfig
 
 
 class Tracker:

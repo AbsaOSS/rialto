@@ -14,11 +14,17 @@
 
 __all__ = ["PipelineExecutor"]
 
+from importlib import import_module
+from typing import Tuple
+
 from loguru import logger
 from pyspark.sql import DataFrame, SparkSession
 
-import rialto.runner.utils as utils
 from rialto.common import DataReader
+from rialto.loader import PysparkFeatureLoader
+from rialto.metadata import MetadataManager
+from rialto.runner import Transformation
+from rialto.runner.services.config_loader import ModuleConfig, PipelineConfig
 from rialto.runner.services.data_checker import DataChecker
 from rialto.runner.services.task_registry import PipelineTask
 
@@ -31,6 +37,42 @@ class PipelineExecutor:
         self.reader = reader
         self.checker = checker
 
+    def _init_tools(
+        self, spark: SparkSession, pipeline: PipelineConfig
+    ) -> Tuple[MetadataManager, PysparkFeatureLoader]:
+        """
+        Initialize metadata manager and feature loader
+
+        :param spark: Spark session
+        :param pipeline: Pipeline configuration
+        :return: MetadataManager and PysparkFeatureLoader
+        """
+        if pipeline.metadata_manager is not None:
+            metadata_manager = MetadataManager(spark, pipeline.metadata_manager.metadata_schema)
+        else:
+            metadata_manager = None
+
+        if pipeline.feature_loader is not None:
+            feature_loader = PysparkFeatureLoader(
+                spark,
+                feature_schema=pipeline.feature_loader.feature_schema,
+                metadata_schema=pipeline.feature_loader.metadata_schema,
+            )
+        else:
+            feature_loader = None
+        return metadata_manager, feature_loader
+
+    def _load_module(self, cfg: ModuleConfig) -> Transformation:
+        """
+        Load feature group
+
+        :param cfg: Feature configuration
+        :return: Transformation object
+        """
+        module = import_module(cfg.python_module)
+        class_obj = getattr(module, cfg.python_class)
+        return class_obj()
+
     def execute(self, pipeline: PipelineTask) -> DataFrame:
         """
         Execute the pipeline task.
@@ -41,8 +83,8 @@ class PipelineExecutor:
         logger.info(f"Executing pipeline {pipeline.op} for partition date {pipeline.partition_date}")
 
         # Load and run the job
-        job = utils.load_module(pipeline.config.module)
-        metadata_manager, feature_loader = utils.init_tools(self.spark, pipeline.config)
+        job = self._load_module(pipeline.config.module)
+        metadata_manager, feature_loader = self._init_tools(self.spark, pipeline.config)
         df = job.run(
             spark=self.spark,
             run_date=pipeline.execution_date,
