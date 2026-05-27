@@ -22,9 +22,9 @@ from rialto.runner.services.task_registry import PipelineDependency
 from rialto.runner.services.task_status_checker import TaskStatusChecker
 
 
-def make_task(op="my_pipeline", partition_date=date(2020, 1, 1), dependencies=None):
+def make_task(name="my_pipeline", partition_date=date(2020, 1, 1), dependencies=None):
     task = Mock()
-    task.op = op
+    task.name = name
     task.partition_date = partition_date
     task.target = Table(schema_path="cat.sch", class_name="TestClass", partition="part")
     task.dependencies = dependencies or []
@@ -119,7 +119,7 @@ def test_check_pipeline_dependencies_passes_correct_dates(status_checker, mock_d
 def test_check_completion_logs_status():
     checker = Mock()
     checker.check_date.return_value = True
-    task = make_task(op="logged_pipeline", partition_date=date(2020, 3, 1))
+    task = make_task(name="logged_pipeline", partition_date=date(2020, 3, 1))
     status_checker = TaskStatusChecker(checker=checker)
 
     with patch("rialto.runner.services.task_status_checker.logger") as mock_logger:

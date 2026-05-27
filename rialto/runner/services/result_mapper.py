@@ -31,7 +31,7 @@ class TaskResultMapper:
     ) -> Record:
         """Map successful task execution to Record"""
         return Record(
-            job=task.op,
+            job=task.name,
             target=task.target.get_table_path(),
             date=task.partition_date,
             time=datetime.now() - run_start,
@@ -45,7 +45,7 @@ class TaskResultMapper:
     def already_complete(task: PipelineTask, run_start: datetime) -> Record:
         """Map skipped (already complete) task to Record"""
         return Record(
-            job=task.op,
+            job=task.name,
             target=task.target.get_table_path(),
             date=task.partition_date,
             time=datetime.now() - run_start,
@@ -64,7 +64,7 @@ class TaskResultMapper:
         """Map dependency failure to Record"""
         details = ",\n".join(failed_deps) if failed_deps else "Unknown"
         return Record(
-            job=task.op,
+            job=task.name,
             target=task.target.get_table_path(),
             date=task.partition_date,
             time=datetime.now() - run_start,
@@ -83,7 +83,7 @@ class TaskResultMapper:
     ) -> Record:
         """Map exception during execution to Record"""
         return Record(
-            job=task.op,
+            job=task.name,
             target=task.target.get_table_path(),
             date=task.partition_date,
             time=datetime.now() - run_start,
@@ -97,7 +97,7 @@ class TaskResultMapper:
     def interrupted(task: PipelineTask, run_start: datetime) -> Record:
         """Map keyboard interrupt to Record"""
         return Record(
-            job=task.op,
+            job=task.name,
             target=task.target.get_table_path(),
             date=task.partition_date,
             time=datetime.now() - run_start,

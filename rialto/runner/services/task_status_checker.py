@@ -35,7 +35,7 @@ class TaskStatusChecker:
         """
         pipeline.completion = self.checker.check_date(pipeline.target, pipeline.partition_date)
         logger.info(
-            f"Job {pipeline.op} completion status for partition date "
+            f"Job {pipeline.name} completion status for partition date "
             f"{pipeline.partition_date}: {pipeline.completion}"
         )
 

@@ -24,7 +24,7 @@ from rialto.runner.services.task_registry import TaskRegistry
 from rialto.runner.services.task_status_checker import TaskStatusChecker
 from rialto.runner.services.writer import DatabricksWriter
 
-CONFIG_PATH = "tests/runner/transformations/config.yaml"
+CONFIG_PATH = "tests/runner/resources/config.yaml"
 
 
 # ── RunnerServices dataclass ──────────────────────────────────────────────────

@@ -80,7 +80,7 @@ class PipelineExecutor:
         :param pipeline: Pipeline object to execute.
         :return: DataFrame resulting from pipeline execution.
         """
-        logger.info(f"Executing pipeline {pipeline.op} for partition date {pipeline.partition_date}")
+        logger.info(f"Executing pipeline {pipeline.name} for partition date {pipeline.partition_date}")
 
         # Load and run the job
         job = self._load_module(pipeline.config.module)

@@ -94,7 +94,7 @@ def test_add_task_no_dependencies(spark, date_manager, pipeline_config_no_deps):
 
     task = tasks[0]
     assert isinstance(task, PipelineTask)
-    assert task.op == "test_pipeline"
+    assert task.name == "test_pipeline"
     assert task.execution_date == date(2020, 1, 1)
     assert task.partition_date == date(2019, 12, 31)
     assert task.config is pipeline_config_no_deps
@@ -147,8 +147,8 @@ def test_add_multiple_tasks(spark, date_manager, pipeline_config_no_deps, pipeli
 
     tasks = list(registry)
     assert len(tasks) == 2
-    assert tasks[0].op == "pipeline_a"
-    assert tasks[1].op == "pipeline_b"
+    assert tasks[0].name == "pipeline_a"
+    assert tasks[1].name == "pipeline_b"
 
 
 def test_iteration(spark, date_manager, pipeline_config_no_deps):
@@ -156,7 +156,7 @@ def test_iteration(spark, date_manager, pipeline_config_no_deps):
     registry.add_task("p1", date(2020, 1, 1), date(2019, 12, 31), pipeline_config_no_deps)
     registry.add_task("p2", date(2020, 1, 1), date(2019, 12, 31), pipeline_config_no_deps)
 
-    names = [task.op for task in registry]
+    names = [task.name for task in registry]
     assert names == ["p1", "p2"]
 
 

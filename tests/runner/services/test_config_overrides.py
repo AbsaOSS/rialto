@@ -16,11 +16,13 @@ from pydantic import ValidationError
 
 from rialto.runner import Runner
 
+CONFIG_PATH = "tests/runner/resources/overrider.yaml"
+
 
 def test_overrides_simple(spark):
     runner = Runner(
         spark,
-        config_path="tests/runner/overrider.yaml",
+        config_path=CONFIG_PATH,
         run_date="2023-03-31",
         overrides={"runner.mail.to": ["x@b.c", "y@b.c", "z@b.c"]},
     )
@@ -30,7 +32,7 @@ def test_overrides_simple(spark):
 def test_overrides_array_index(spark):
     runner = Runner(
         spark,
-        config_path="tests/runner/overrider.yaml",
+        config_path=CONFIG_PATH,
         run_date="2023-03-31",
         overrides={"runner.mail.to[1]": "a@b.c"},
     )
@@ -40,7 +42,7 @@ def test_overrides_array_index(spark):
 def test_overrides_array_append(spark):
     runner = Runner(
         spark,
-        config_path="tests/runner/overrider.yaml",
+        config_path=CONFIG_PATH,
         run_date="2023-03-31",
         overrides={"runner.mail.to[-1]": "test"},
     )
@@ -50,7 +52,7 @@ def test_overrides_array_append(spark):
 def test_overrides_array_lookup(spark):
     runner = Runner(
         spark,
-        config_path="tests/runner/overrider.yaml",
+        config_path=CONFIG_PATH,
         run_date="2023-03-31",
         overrides={"pipelines[name=SimpleGroup].target.target_schema": "new_schema"},
     )
@@ -60,7 +62,7 @@ def test_overrides_array_lookup(spark):
 def test_overrides_combined(spark):
     runner = Runner(
         spark,
-        config_path="tests/runner/overrider.yaml",
+        config_path=CONFIG_PATH,
         run_date="2023-03-31",
         overrides={
             "runner.mail.to": ["x@b.c", "y@b.c", "z@b.c"],
@@ -77,7 +79,7 @@ def test_index_out_of_range(spark):
     with pytest.raises(IndexError) as error:
         Runner(
             spark,
-            config_path="tests/runner/overrider.yaml",
+            config_path=CONFIG_PATH,
             run_date="2023-03-31",
             overrides={"runner.mail.to[8]": "test"},
         )
@@ -88,7 +90,7 @@ def test_invalid_index_key(spark):
     with pytest.raises(ValueError) as error:
         Runner(
             spark,
-            config_path="tests/runner/overrider.yaml",
+            config_path=CONFIG_PATH,
             run_date="2023-03-31",
             overrides={"runner.mail.test[8]": "test"},
         )
@@ -99,7 +101,7 @@ def test_invalid_key(spark):
     with pytest.raises(ValueError) as error:
         Runner(
             spark,
-            config_path="tests/runner/overrider.yaml",
+            config_path=CONFIG_PATH,
             run_date="2023-03-31",
             overrides={"runner.mail.test.param": "test"},
         )
@@ -110,7 +112,7 @@ def test_new_key(spark):
     with pytest.raises(ValidationError):
         Runner(
             spark,
-            config_path="tests/runner/overrider.yaml",
+            config_path=CONFIG_PATH,
             run_date="2023-03-31",
             overrides={"runner.some_value": 5},
         )
@@ -119,7 +121,7 @@ def test_new_key(spark):
 def test_replace_section(spark):
     runner = Runner(
         spark,
-        config_path="tests/runner/overrider.yaml",
+        config_path=CONFIG_PATH,
         run_date="2023-03-31",
         overrides={
             "pipelines[name=SimpleGroup].feature_loader": {
@@ -134,7 +136,7 @@ def test_replace_section(spark):
 def test_add_section(spark):
     runner = Runner(
         spark,
-        config_path="tests/runner/overrider.yaml",
+        config_path=CONFIG_PATH,
         run_date="2023-03-31",
         overrides={
             "pipelines[name=OtherGroup].feature_loader": {
@@ -150,7 +152,7 @@ def test_invalid_append_index_for_nested_path(spark):
     with pytest.raises(ValueError) as error:
         Runner(
             spark,
-            config_path="tests/runner/overrider.yaml",
+            config_path=CONFIG_PATH,
             run_date="2023-03-31",
             overrides={"runner.mail.to[-1].domain": "example.com"},
         )

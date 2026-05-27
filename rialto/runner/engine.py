@@ -81,7 +81,7 @@ class RunnerEngine:
 
         # Skip already-complete tasks
         if task.completion and not self.rerun:
-            logger.info(f"Skipping task {task.op} for partition {task.partition_date} - already complete")
+            logger.info(f"Skipping task {task.name} for partition {task.partition_date} - already complete")
             self.services.tracker.add(TaskResultMapper.already_complete(task, run_start))
             return
 
@@ -93,7 +93,7 @@ class RunnerEngine:
         ]
         if incomplete_deps and not self.skip_dependencies:
             logger.info(
-                f"Incomplete dependencies for task {task.op} for "
+                f"Incomplete dependencies for task {task.name} for "
                 f"partition {task.partition_date} - {', '.join(incomplete_deps)}"
             )
             self.services.tracker.add(TaskResultMapper.dependencies_incomplete(task, run_start, incomplete_deps))
@@ -105,14 +105,14 @@ class RunnerEngine:
             self.services.writer.write(df, task.partition_date, task.target)
             records = self.services.data_checker.check_written(task.target, task.partition_date, df)
             logger.info(
-                f"Task {task.op} for partition {task.partition_date} completed successfully with {records} records"
+                f"Task {task.name} for partition {task.partition_date} completed successfully with {records} records"
             )
             self.services.tracker.add(TaskResultMapper.success(task, run_start, records))
         except KeyboardInterrupt:
             self.services.tracker.add(TaskResultMapper.interrupted(task, run_start))
             raise
         except Exception as e:
-            logger.exception(f"Task {task.op} failed for partition {task.partition_date}")
+            logger.exception(f"Task {task.name} failed for partition {task.partition_date}")
             self.services.tracker.add(
                 TaskResultMapper.exception(task, run_start, type(e).__name__, traceback.format_exc())
             )

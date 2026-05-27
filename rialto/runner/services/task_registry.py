@@ -39,7 +39,7 @@ class PipelineDependency:
 class PipelineTask:
     """Class representing a pipeline to be executed."""
 
-    op: str
+    name: str
     execution_date: date
     partition_date: date
     config: PipelineConfig
@@ -70,7 +70,7 @@ class TaskRegistry:
         """
         target = Table.from_target_config(config)
         new_pipe = PipelineTask(
-            op=name, execution_date=execution_date, partition_date=partition_date, config=config, target=target
+            name=name, execution_date=execution_date, partition_date=partition_date, config=config, target=target
         )
 
         for dependency_config in config.dependencies:
@@ -98,5 +98,5 @@ class TaskRegistry:
         for task in self.tasks:
             complete_icon = check if task.completion else cross
             deps_icon = check if task.dependencies_complete else cross
-            status = status + f"{task.op:<50} {str(task.partition_date):<15} {complete_icon:^8} {deps_icon:^12}\n"
+            status = status + f"{task.name:<50} {str(task.partition_date):<15} {complete_icon:^8} {deps_icon:^12}\n"
         logger.info(status)

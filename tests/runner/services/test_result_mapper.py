@@ -17,9 +17,9 @@ from unittest.mock import Mock
 from rialto.runner.services.result_mapper import TaskResultMapper
 
 
-def _make_task(op="my_pipeline", table_path="catalog.schema.table", partition_date=date(2026, 1, 1)):
+def _make_task(name="my_pipeline", table_path="catalog.schema.table", partition_date=date(2026, 1, 1)):
     task = Mock()
-    task.op = op
+    task.name = name
     task.partition_date = partition_date
     task.target.get_table_path.return_value = table_path
     return task
@@ -33,7 +33,7 @@ def _run_start():
 
 
 def test_success():
-    task = _make_task(op="pipe_a", table_path="cat.sch.tbl", partition_date=date(2026, 5, 1))
+    task = _make_task(name="pipe_a", table_path="cat.sch.tbl", partition_date=date(2026, 5, 1))
     record = TaskResultMapper.success(task, _run_start(), records_count=42)
     assert record.status == "Success"
     assert record.reason == "OK"
@@ -50,7 +50,7 @@ def test_success():
 
 
 def test_already_complete():
-    task = _make_task(op="pipe_b", table_path="cat.sch.tbl2", partition_date=date(2026, 3, 15))
+    task = _make_task(name="pipe_b", table_path="cat.sch.tbl2", partition_date=date(2026, 3, 15))
     record = TaskResultMapper.already_complete(task, _run_start())
     assert record.status == "Skipped"
     assert record.reason == "AlreadyComplete"
@@ -65,7 +65,7 @@ def test_already_complete():
 
 
 def test_dependencies_incomplete_status_and_reason():
-    task = _make_task(op="pipe_b", table_path="cat.sch.tbl2", partition_date=date(2026, 3, 15))
+    task = _make_task(name="pipe_b", table_path="cat.sch.tbl2", partition_date=date(2026, 3, 15))
     failed = ["cat.s.dep1 from 2026-01-01 until 2026-01-07", "cat.s.dep2 from 2026-01-01 until 2026-01-07"]
     record = TaskResultMapper.dependencies_incomplete(task, _run_start(), failed)
     assert record.status == "Failed"
@@ -94,7 +94,7 @@ def test_dependencies_incomplete_empty_list_falls_back():
 
 
 def test_exception():
-    task = _make_task(op="pipe_c", table_path="cat.sch.tbl3", partition_date=date(2026, 4, 10))
+    task = _make_task(name="pipe_c", table_path="cat.sch.tbl3", partition_date=date(2026, 4, 10))
     record = TaskResultMapper.exception(task, _run_start(), "ValueError", "Traceback...")
     assert record.status == "Error"
     assert record.reason == "ValueError"
@@ -109,7 +109,7 @@ def test_exception():
 
 
 def test_interrupted():
-    task = _make_task(op="pipe_c", table_path="cat.sch.tbl3", partition_date=date(2026, 4, 10))
+    task = _make_task(name="pipe_c", table_path="cat.sch.tbl3", partition_date=date(2026, 4, 10))
     record = TaskResultMapper.interrupted(task, _run_start())
     assert record.status == "Error"
     assert record.reason == "Keyboard Interrupt"
