@@ -47,6 +47,9 @@ class PipelineTask:
     dependencies: List[PipelineDependency] = field(default_factory=list)
     completion: bool = False
     dependencies_complete: bool = False
+    precheck_failed: bool = False
+    error: str | None = None
+    error_trace: str | None = None
 
 
 class TaskRegistry:

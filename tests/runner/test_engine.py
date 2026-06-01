@@ -42,6 +42,7 @@ def _task(
     name="p1",
     completion=False,
     dependencies_complete=True,
+    precheck_failed=False,
     partition_date=date(2026, 1, 8),
     execution_date=date(2026, 1, 8),
     deps=None,
@@ -50,6 +51,7 @@ def _task(
     t.name = name
     t.completion = completion
     t.dependencies_complete = dependencies_complete
+    t.precheck_failed = precheck_failed
     t.partition_date = partition_date
     t.execution_date = execution_date
     t.dependencies = deps if deps is not None else []
@@ -201,7 +203,7 @@ def test_run_tasks_calls_execute_with_tracking_for_each_task():
 
 def test_execute_task_with_tracking_skips_already_complete():
     services = _services()
-    task = _task(completion=True, dependencies_complete=True)
+    task = _task(completion=True, dependencies_complete=True, precheck_failed=False)
     engine = RunnerEngine(services=services, rerun=False, skip_dependencies=False)
 
     with patch("rialto.runner.engine.TaskResultMapper.already_complete", return_value="rec") as mapper, patch(

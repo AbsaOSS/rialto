@@ -62,7 +62,7 @@ class TaskResultMapper:
         failed_deps: list,
     ) -> Record:
         """Map dependency failure to Record"""
-        details = ",\n".join(failed_deps) if failed_deps else "Unknown"
+        details = "Dependencies Incomplete: " + ",\n".join(failed_deps) if failed_deps else "Unknown"
         return Record(
             job=task.name,
             target=task.target.get_table_path(),

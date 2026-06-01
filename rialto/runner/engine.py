@@ -61,9 +61,21 @@ class RunnerEngine:
         """Check task completion and dependency status"""
         for task in self.services.registry.tasks:
             if not self.rerun:
-                self.services.task_checker.check_completion(task)
+                try:
+                    self.services.task_checker.check_completion(task)
+                except Exception as e:
+                    logger.error(f"{task.name} completion check failed for {task.partition_date}:\n\t{e}")
+                    task.precheck_failed = True
+                    task.error = str(e)
+                    task.error_trace = traceback.format_exc()
             if not self.skip_dependencies:
-                self.services.task_checker.check_pipeline_dependencies(task)
+                try:
+                    self.services.task_checker.check_pipeline_dependencies(task)
+                except Exception as e:
+                    logger.error(f"{task.name} dependency check failed for {task.partition_date}:\n\t{e}")
+                    task.precheck_failed = True
+                    task.error = str(e)
+                    task.error_trace = traceback.format_exc()
 
     def log_task_status(self) -> None:
         """Log summary of task statuses"""
@@ -78,6 +90,10 @@ class RunnerEngine:
     def _execute_task_with_tracking(self, task: PipelineTask) -> None:
         """Execute single task with record tracking"""
         run_start = datetime.now()
+
+        if task.precheck_failed:
+            self.services.tracker.add(TaskResultMapper.exception(task, run_start, task.error, task.error_trace))
+            return
 
         # Skip already-complete tasks
         if task.completion and not self.rerun:
@@ -113,9 +129,7 @@ class RunnerEngine:
             raise
         except Exception as e:
             logger.exception(f"Task {task.name} failed for partition {task.partition_date}")
-            self.services.tracker.add(
-                TaskResultMapper.exception(task, run_start, type(e).__name__, traceback.format_exc())
-            )
+            self.services.tracker.add(TaskResultMapper.exception(task, run_start, str(e), traceback.format_exc()))
 
     def finalize(self) -> None:
         """Send final reports via mail/bookkeeping"""
