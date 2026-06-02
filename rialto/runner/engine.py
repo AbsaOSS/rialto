@@ -134,6 +134,7 @@ class RunnerEngine:
     def finalize(self) -> None:
         """Send final reports via mail/bookkeeping"""
         self.services.tracker.report_by_mail()
+        self.log_task_status()
 
     def run(self, op: str = None) -> None:
         """Execute all tasks"""

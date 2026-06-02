@@ -30,6 +30,7 @@ class TaskResultMapper:
         records_count: int,
     ) -> Record:
         """Map successful task execution to Record"""
+        task.result = str(records_count)
         return Record(
             job=task.name,
             target=task.target.get_table_path(),
@@ -44,6 +45,7 @@ class TaskResultMapper:
     @staticmethod
     def already_complete(task: PipelineTask, run_start: datetime) -> Record:
         """Map skipped (already complete) task to Record"""
+        task.result = "Skipped"
         return Record(
             job=task.name,
             target=task.target.get_table_path(),
@@ -62,6 +64,7 @@ class TaskResultMapper:
         failed_deps: list,
     ) -> Record:
         """Map dependency failure to Record"""
+        task.result = "Failed"
         details = "Dependencies Incomplete: " + ",\n".join(failed_deps) if failed_deps else "Unknown"
         return Record(
             job=task.name,
@@ -82,6 +85,7 @@ class TaskResultMapper:
         traceback_str: str,
     ) -> Record:
         """Map exception during execution to Record"""
+        task.result = "Error"
         return Record(
             job=task.name,
             target=task.target.get_table_path(),
@@ -96,6 +100,7 @@ class TaskResultMapper:
     @staticmethod
     def interrupted(task: PipelineTask, run_start: datetime) -> Record:
         """Map keyboard interrupt to Record"""
+        task.result = "Interrupt"
         return Record(
             job=task.name,
             target=task.target.get_table_path(),

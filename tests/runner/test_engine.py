@@ -177,6 +177,35 @@ def test_check_tasks_skips_dependencies_when_skip_dependencies_true():
     services.task_checker.check_pipeline_dependencies.assert_not_called()
 
 
+def test_check_completion_records_exception_and_sets_precheck_failed():
+    services = _services()
+    t = _task()
+    services.registry.tasks = [t]
+    services.task_checker.check_completion.side_effect = RuntimeError("boom")
+
+    engine = RunnerEngine(services=services, rerun=False, skip_dependencies=False)
+    engine.check_tasks()
+
+    services.task_checker.check_completion.assert_called_once_with(t)
+    assert t.precheck_failed is True
+    assert t.error == "boom"
+    assert "RuntimeError: boom" in t.error_trace
+
+
+def test_check_dependencies_records_exception_and_sets_precheck_failed():
+    services = _services()
+    t = _task()
+    services.registry.tasks = [t]
+    services.task_checker.check_pipeline_dependencies.side_effect = RuntimeError("boom")
+    engine = RunnerEngine(services=services, rerun=True, skip_dependencies=False)
+    engine.check_tasks()
+
+    services.task_checker.check_pipeline_dependencies.assert_called_once_with(t)
+    assert t.precheck_failed is True
+    assert t.error == "boom"
+    assert "RuntimeError: boom" in t.error_trace
+
+
 # ---- run_tasks -------------------------------------------------------------
 
 
@@ -199,6 +228,19 @@ def test_run_tasks_calls_execute_with_tracking_for_each_task():
 
 
 # ---- _execute_task_with_tracking branches ----------------------------------
+
+
+def test_execute_task_with_tracking_records_precheck_failure_and_skips_execution():
+    services = _services()
+    task = _task(precheck_failed=True)
+    engine = RunnerEngine(services=services, rerun=False, skip_dependencies=False)
+
+    with patch("rialto.runner.engine.TaskResultMapper.exception", return_value="rec") as mapper:
+        engine._execute_task_with_tracking(task)
+
+    mapper.assert_called_once()
+    services.tracker.add.assert_called_once_with("rec")
+    services.executor.execute.assert_not_called()
 
 
 def test_execute_task_with_tracking_skips_already_complete():
@@ -320,13 +362,15 @@ def test_execute_task_with_tracking_runs_when_rerun_true_even_if_completion_true
 # ---- wrappers --------------------------------------------------------------
 
 
-def test_finalize_calls_tracker_report_by_mail():
+def test_finalize_calls_tracker_report_by_mail_and_log():
     services = _services()
     engine = RunnerEngine(services=services, rerun=False, skip_dependencies=False)
 
-    engine.finalize()
+    with patch.object(engine, "log_task_status") as log_task_status:
+        engine.finalize()
 
     services.tracker.report_by_mail.assert_called_once_with()
+    log_task_status.assert_called_once_with()
 
 
 def test_run_calls_full_flow():
@@ -394,3 +438,13 @@ def test_debug_first_task_registers_and_executes_first_task():
     register_tasks.assert_called_once_with(["pipes"])
     services.executor.execute.assert_called_once_with(t1)
     assert result == "df_debug"
+
+
+# ---- logging ---------------------------------------------------------------
+def test_log_task_status_calls_registry_log_status():
+    services = _services()
+    engine = RunnerEngine(services=services, rerun=False, skip_dependencies=False)
+
+    engine.log_task_status()
+
+    services.registry.log_status.assert_called_once_with()

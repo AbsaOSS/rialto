@@ -50,6 +50,7 @@ class PipelineTask:
     precheck_failed: bool = False
     error: str | None = None
     error_trace: str | None = None
+    result: str = ""
 
 
 class TaskRegistry:
@@ -96,10 +97,13 @@ class TaskRegistry:
         """Log status of all tasks in registry, showing completion and dependency status"""
         check = "\u2714"  # ✔
         cross = "\u2718"  # ✘
-        status = f"\n{'Job Name':<50} {'Partition Date':<15} {'Complete':<8} {'Dependencies':<12}\n"
+        status = f"\n{'Job Name':<50} {'Partition Date':<15} {'Complete':<8} {'Dependencies':<12} {'Result':<9}\n"
         status = status + ("-" * 70 + "\n")
         for task in self.tasks:
             complete_icon = check if task.completion else cross
             deps_icon = check if task.dependencies_complete else cross
-            status = status + f"{task.name:<50} {str(task.partition_date):<15} {complete_icon:^8} {deps_icon:^12}\n"
+            status = (
+                status + f"{task.name:<50} {str(task.partition_date):<15} {complete_icon:^8} "
+                f"{deps_icon:^12} {task.result:<9}\n"
+            )
         logger.info(status)
