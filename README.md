@@ -50,11 +50,12 @@ Runner uses a schedule-based approach:
 #### Data Flow
 
 For each pipeline execution:
-1. **Dependency verification**: Check that all required input tables have data within specified time intervals
-2. **Transformation execution**: Run your transformation to produce a Spark DataFrame
-3. **Automatic enrichment**: Runner adds `INFORMATION_DATE` (the run date) and `VERSION` (package version) columns
-4. **Partitioned write**: Data is written to Databricks with partitioning configuration
-5. **Reporting**: Optional email notifications on failure and run information stored to tracking table
+1. **Previous completion check**: Runner checks if the target table partition for the run date already exists (unless `rerun` is enabled)
+2. **Dependency verification**: Check that all required input tables have data within specified time intervals
+3. **Transformation execution**: Run your transformation to produce a Spark DataFrame
+4. **Automatic enrichment**: Runner adds `INFORMATION_DATE` (the run date) and `VERSION` (package version) columns
+5. **Partitioned write**: Data is written to Databricks with partitioning configuration
+6. **Reporting**: Optional email notifications on failure and run information stored to tracking table
 
 #### Dependency Tracking
 
@@ -66,13 +67,13 @@ Runner's dependency tracking ensures that all required input data is available b
 * **Missing data handling**: If required data is missing, Runner raises an error for that specific pipeline/date but continues executing other pipelines and dates in the queue
 
 **Example:** If you're running a pipeline on 2024-01-15 with a dependency that has a 7-day interval:
-* Runner checks if the dependency table has data for 2024-01-08 (15 days - 7 days)
+* Runner checks if the dependency table has data between 2024-01-08 and 2024-01-15 (15 days - 7 days)
 * If the dependency has `filters: {VERSION: "v2"}`, it specifically checks for data where VERSION='v2'
 * If data exists, the pipeline proceeds; otherwise, an error is raised for this specific execution, but other scheduled runs continue
 
-### Transformation
+### Job/Transformation
 For the details on the interface see the [implementation](rialto/runner/transformation.py)
-Inside the transformation you have access to a [TableReader](#common), date of running, and if provided to Runner, a live spark session and [metadata manager](#metadata).
+Inside the job you have access to a [TableReader](#common), date of running, and if provided to Runner, a live spark session and [metadata manager](#metadata).
 You can either implement your jobs directly via extending the Transformation class, or by using the [jobs](#jobs) abstraction.
 
 ### Runner
@@ -163,7 +164,7 @@ pipelines: # a list of pipelines to run
     python_class: Pipeline2Class
   schedule:
     frequency: monthly
-    day: 6
+    day: 6 # or 'latest' for the last day of the month, otherwise avoid using days higher than 28 to ensure all months are covered
     info_date_shift: # can be combined as a list
       - units: "days"
         value: 5
