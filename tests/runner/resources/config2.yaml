@@ -1,4 +1,4 @@
-#  Copyright 2022 ABSA Group Limited
+#  Copyright 2022-2026 ABSA Group Limited
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -30,20 +30,16 @@ pipelines:
     frequency: weekly
     day: 7
   dependencies:
-    - table: source.schema.multi_part_data
+    - table: source.schema.dep1
       interval:
         units: "days"
         value: 1
       date_col: "DATE"
-      filters:
-        VERSION: 2
-        TYPE: "A"
+    - table: source.schema.dep2
+      interval:
+        units: "months"
+        value: 1
+      date_col: "DATE"
   target:
     target_schema: catalog.schema
     target_partition_column: "INFORMATION_DATE"
-    secondary_partition_columns:
-        - "VERSION"
-        - "ENV"
-    rerun_filters:
-      version: 3
-      env: "dev"

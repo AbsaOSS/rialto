@@ -1,4 +1,4 @@
-#  Copyright 2022 ABSA Group Limited
+#  Copyright 2022-2026 ABSA Group Limited
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ class HTMLMessage:
 
     @staticmethod
     def _get_status_color(status: str):
-        if status == "Success":
+        if status == "Success" or status == "Skipped":
             return "#398f00"
         elif status == "Error":
             return "#ff0000"
@@ -128,10 +128,6 @@ class HTMLMessage:
                     </noscript>
                 <![endif]-->
             </head>
-            <style>
-                .foldingcheckbox { float: left; }
-                .foldingcheckbox:not(:checked) + * { display: none }
-            </style>
         """
 
     @staticmethod
@@ -164,14 +160,10 @@ class HTMLMessage:
                         </tr>
                     </table>
 
-                    <input class="foldingcheckbox" type="checkbox">Expand</input>
-                    <div>
-                        <table {HTMLMessage.borderless_table}>
-                            <tr>
-                                <td colspan="2">{record.exception}</td>
-                            </tr>
-                        </table>
-                    </div>
+                    <table {HTMLMessage.borderless_table}>
+                        <tr>
+                            <td colspan="2">{record.exception}</td>
+                        </tr>
                 """
                 html += r
         return html

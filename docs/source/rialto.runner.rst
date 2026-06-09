@@ -8,70 +8,55 @@ Subpackages
    :maxdepth: 4
 
    rialto.runner.reporting
+   rialto.runner.services
 
 Submodules
 ----------
 
-rialto.runner.config\_loader module
------------------------------------
+rialto.runner.engine module
+---------------------------
 
-.. automodule:: rialto.runner.config_loader
+.. automodule:: rialto.runner.engine
    :members:
-   :undoc-members:
    :show-inheritance:
-
-rialto.runner.config\_overrides module
---------------------------------------
-
-.. automodule:: rialto.runner.config_overrides
-   :members:
    :undoc-members:
-   :show-inheritance:
-
-rialto.runner.date\_manager module
-----------------------------------
-
-.. automodule:: rialto.runner.date_manager
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 rialto.runner.runner module
 ---------------------------
 
 .. automodule:: rialto.runner.runner
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
-rialto.runner.table module
---------------------------
+rialto.runner.runner\_services module
+-------------------------------------
 
-.. automodule:: rialto.runner.table
+.. automodule:: rialto.runner.runner_services
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 rialto.runner.transformation module
 -----------------------------------
 
 .. automodule:: rialto.runner.transformation
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 rialto.runner.utils module
------------------------------------
+--------------------------
 
 .. automodule:: rialto.runner.utils
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: rialto.runner
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

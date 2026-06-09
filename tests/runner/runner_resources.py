@@ -1,4 +1,4 @@
-#  Copyright 2022 ABSA Group Limited
+#  Copyright 2022-2026 ABSA Group Limited
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 #  limitations under the License.
 from pyspark.sql.types import DateType, IntegerType, StringType, StructField, StructType
 
-from rialto.runner.date_manager import DateManager
+from rialto.runner.services.date_manager import DateManager
 
 simple_group_data = [
     ("A", DateManager.str_to_date("2023-03-05")),

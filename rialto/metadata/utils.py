@@ -1,4 +1,4 @@
-#  Copyright 2022 ABSA Group Limited
+#  Copyright 2022-2026 ABSA Group Limited
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ __all__ = ["class_to_catalog_name"]
 
 def class_to_catalog_name(class_name) -> str:
     """
-    Map python class name of feature group (CammelCase) to databricks compatible format (lowercase with underscores)
+    Map python class name of feature group (CamelCase) to databricks compatible format (lowercase with underscores)
 
     :param class_name: Python class name
     :return: feature storage name

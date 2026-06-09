@@ -1,4 +1,4 @@
-#  Copyright 2022 ABSA Group Limited
+#  Copyright 2022-2026 ABSA Group Limited
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -68,6 +68,16 @@ class DataReader(metaclass=abc.ABCMeta):
         :param date_to: Optional date to (inclusive)
         :param uppercase_columns: Option to refactor all column names to uppercase
         :return: Dataframe
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def table_exists(self, table: str) -> bool:
+        """
+        Check table exists in storage
+
+        :param table: full table path
+        :return: bool
         """
         raise NotImplementedError
 
@@ -165,3 +175,12 @@ class TableReader(DataReader):
         if uppercase_columns:
             df = self._uppercase_column_names(df)
         return df
+
+    def table_exists(self, table: str) -> bool:
+        """
+        Check table exists in spark catalog
+
+        :param table: full table path
+        :return: bool
+        """
+        return self.spark.catalog.tableExists(table)

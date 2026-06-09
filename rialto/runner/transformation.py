@@ -1,4 +1,4 @@
-#  Copyright 2022 ABSA Group Limited
+#  Copyright 2022-2026 ABSA Group Limited
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ from pyspark.sql import DataFrame, SparkSession
 from rialto.common import DataReader
 from rialto.loader import PysparkFeatureLoader
 from rialto.metadata import MetadataManager
-from rialto.runner.config_loader import PipelineConfig
+from rialto.runner.services.config_loader import PipelineConfig
 
 
 class Transformation(metaclass=abc.ABCMeta):

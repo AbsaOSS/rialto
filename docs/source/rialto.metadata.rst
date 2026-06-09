@@ -17,29 +17,29 @@ rialto.metadata.enums module
 
 .. automodule:: rialto.metadata.enums
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 rialto.metadata.metadata\_manager module
 ----------------------------------------
 
 .. automodule:: rialto.metadata.metadata_manager
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 rialto.metadata.utils module
 ----------------------------
 
 .. automodule:: rialto.metadata.utils
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: rialto.metadata
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
