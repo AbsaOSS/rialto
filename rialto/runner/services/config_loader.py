@@ -13,15 +13,15 @@
 #  limitations under the License.
 
 __all__ = [
-    "get_pipelines_config",
+    "ConfigLoader",
 ]
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from rialto.common.utils import load_yaml
-from rialto.runner.config_overrides import override_config
+from rialto.runner.services.config_overrides import override_config
 
 
 class BaseConfig(BaseModel):
@@ -35,8 +35,10 @@ class IntervalConfig(BaseConfig):
 
 class ScheduleConfig(BaseConfig):
     frequency: str
-    day: Optional[int] = 0
-    info_date_shift: Optional[List[IntervalConfig]] = IntervalConfig(units="days", value=0)
+    day: Optional[Union[int, str]] = 0
+    info_date_shift: Optional[Union[IntervalConfig, List[IntervalConfig]]] = Field(
+        default_factory=lambda: IntervalConfig(units="days", value=0)
+    )
 
 
 class DependencyConfig(BaseConfig):
@@ -88,16 +90,16 @@ class PipelineConfig(BaseConfig):
     name: str
     module: ModuleConfig
     schedule: ScheduleConfig
-    dependencies: Optional[List[DependencyConfig]] = []
-    target: TargetConfig = None
+    dependencies: Optional[List[DependencyConfig]] = Field(default_factory=list)
+    target: Optional[TargetConfig] = None
     metadata_manager: Optional[MetadataManagerConfig] = None
     feature_loader: Optional[FeatureLoaderConfig] = None
-    extras: Optional[Dict] = {}
+    extras: Optional[Dict] = Field(default_factory=dict)
 
 
 class PipelinesConfig(BaseConfig):
     runner: RunnerConfig
-    pipelines: list[PipelineConfig]
+    pipelines: List[PipelineConfig]
 
 
 def get_pipelines_config(path: str, overrides: Dict) -> PipelinesConfig:
@@ -108,3 +110,12 @@ def get_pipelines_config(path: str, overrides: Dict) -> PipelinesConfig:
         return PipelinesConfig(**cfg)
     else:
         return PipelinesConfig(**raw_config)
+
+
+class ConfigLoader:
+    """Loader for pipelines config"""
+
+    @staticmethod
+    def load_yaml(path: str, overrides: Dict) -> PipelinesConfig:
+        """Load yaml config and apply overrides"""
+        return get_pipelines_config(path, overrides)

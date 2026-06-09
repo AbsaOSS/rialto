@@ -28,7 +28,7 @@ from rialto.jobs.resolver import Resolver
 from rialto.loader import PysparkFeatureLoader
 from rialto.metadata import MetadataManager
 from rialto.runner import Transformation
-from rialto.runner.config_loader import PipelineConfig
+from rialto.runner.services.config_loader import PipelineConfig
 
 
 class JobMetadata(BaseModel):

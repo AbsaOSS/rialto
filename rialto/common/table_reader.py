@@ -71,6 +71,16 @@ class DataReader(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def table_exists(self, table: str) -> bool:
+        """
+        Check table exists in storage
+
+        :param table: full table path
+        :return: bool
+        """
+        raise NotImplementedError
+
 
 class TableReader(DataReader):
     """An implementation of data reader for databricks tables"""
@@ -165,3 +175,12 @@ class TableReader(DataReader):
         if uppercase_columns:
             df = self._uppercase_column_names(df)
         return df
+
+    def table_exists(self, table: str) -> bool:
+        """
+        Check table exists in spark catalog
+
+        :param table: full table path
+        :return: bool
+        """
+        return self.spark.catalog.tableExists(table)

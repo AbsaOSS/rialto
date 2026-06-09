@@ -17,7 +17,7 @@ __all__ = ["class_to_catalog_name"]
 
 def class_to_catalog_name(class_name) -> str:
     """
-    Map python class name of feature group (CammelCase) to databricks compatible format (lowercase with underscores)
+    Map python class name of feature group (CamelCase) to databricks compatible format (lowercase with underscores)
 
     :param class_name: Python class name
     :return: feature storage name

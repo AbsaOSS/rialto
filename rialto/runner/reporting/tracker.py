@@ -18,10 +18,10 @@ from datetime import datetime
 
 from pyspark.sql import SparkSession
 
-from rialto.runner.config_loader import MailConfig
 from rialto.runner.reporting.bookkeeper import BookKeeper
 from rialto.runner.reporting.mailer import HTMLMessage, Mailer
 from rialto.runner.reporting.record import Record
+from rialto.runner.services.config_loader import MailConfig
 
 
 class Tracker:
@@ -29,9 +29,7 @@ class Tracker:
 
     def __init__(self, mail_cfg: MailConfig, bookkeeping: str = None, spark: SparkSession = None):
         self.records = []
-        self.last_error = None
         self.pipeline_start = datetime.now()
-        self.exceptions = []
         self.mail_cfg = mail_cfg
         self.bookkeeper = None
 
