@@ -13,4 +13,5 @@
 #  limitations under the License.
 
 from rialto.runner.runner import Runner
+from rialto.runner.services import config_loader
 from rialto.runner.transformation import Transformation

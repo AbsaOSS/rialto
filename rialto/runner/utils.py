@@ -14,6 +14,8 @@
 
 __all__ = ["find_dependency"]
 
+from loguru import logger
+
 from rialto.runner.services.config_loader import PipelineConfig
 
 
@@ -28,4 +30,5 @@ def find_dependency(config: PipelineConfig, name: str):
     for dep in config.dependencies:
         if dep.name == name:
             return dep
+    logger.error(f"Dependency {name} not found in config")
     return None
