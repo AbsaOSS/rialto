@@ -82,7 +82,7 @@ class MetadataManagerConfig(BaseConfig):
 
 
 class FeatureLoaderConfig(BaseConfig):
-    feature_schema: str
+    feature_schema: Union[str, List[str]]
     metadata_schema: str
 
 
